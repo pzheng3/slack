@@ -48,9 +48,12 @@ export function MessageComposer({
   const mentionItemsRef = useRef(mentionItems);
   mentionItemsRef.current = mentionItems;
 
+  /** Tracks whether the @mention popup is currently visible. */
+  const mentionOpenRef = useRef(false);
+
   /** Stable suggestion config — uses a ref so the item list stays fresh. */
   const mentionSuggestion = useMemo(
-    () => createMentionSuggestion(() => mentionItemsRef.current),
+    () => createMentionSuggestion(() => mentionItemsRef.current, mentionOpenRef),
     []
   );
 
@@ -83,6 +86,11 @@ export function MessageComposer({
       },
       handleKeyDown(view, event) {
         if (event.key === "Enter" && !event.shiftKey) {
+          // If the @mention suggestion popup is open, let it handle Enter
+          if (mentionOpenRef.current) {
+            return false;
+          }
+
           // Inside a list, let Tiptap handle Enter (adds a new list item)
           const { $from } = view.state.selection;
           for (let depth = $from.depth; depth > 0; depth--) {
@@ -542,10 +550,14 @@ function SendButton({
       </button>
 
       {/* Divider */}
-      <div className="flex h-7 items-center">
+      <div
+        className={`flex h-7 items-center ${
+          isActive ? "bg-[var(--color-slack-send-active)]" : ""
+        }`}
+      >
         <div
           className={`h-5 w-px ${
-            isActive ? "bg-white/50" : "bg-[var(--color-slack-border-light)]"
+            isActive ? "bg-white/50" : "bg-[rgba(29,28,29,0.06)]"
           }`}
         />
       </div>

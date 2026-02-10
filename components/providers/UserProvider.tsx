@@ -1,0 +1,126 @@
+"use client";
+
+import type { User } from "@/lib/types";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { USER_AVATAR_MAP } from "@/lib/constants";
+import { useSupabase } from "./SupabaseProvider";
+
+interface UserContextValue {
+  /** The current user, or null if not yet identified */
+  user: User | null;
+  /** Whether the provider is still loading from localStorage / DB */
+  loading: boolean;
+  /** Register a new username; returns an error string on failure */
+  register: (username: string) => Promise<string | null>;
+}
+
+const UserContext = createContext<UserContextValue>({
+  user: null,
+  loading: true,
+  register: async () => "UserProvider not mounted",
+});
+
+const STORAGE_KEY = "slack_input_user_id";
+
+/** Default avatar images for new users — randomly assigned on registration */
+const DEFAULT_AVATARS = [
+  "/images/No Photo A.png",
+  "/images/No Photo B.png",
+  "/images/No Photo C.png",
+  "/images/No Photo D.png",
+  "/images/No Photo E.png",
+  "/images/No Photo F.png",
+];
+
+/**
+ * Provides the current user identity to the component tree.
+ * On mount, checks localStorage for an existing userId and verifies it
+ * against Supabase. If no user exists, `user` stays null and the app
+ * should show the UsernameModal.
+ */
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const supabase = useSupabase();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // On mount: check localStorage for existing userId
+  useEffect(() => {
+    async function loadUser() {
+      const storedId = localStorage.getItem(STORAGE_KEY);
+      if (storedId) {
+        const { data } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", storedId)
+          .single();
+        if (data) {
+          setUser(data as User);
+        } else {
+          // Stored user no longer exists in DB
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+      setLoading(false);
+    }
+    loadUser();
+  }, [supabase]);
+
+  /**
+   * Register a new username. Checks uniqueness, inserts into DB,
+   * stores userId in localStorage, and updates context.
+   * @returns error message string on failure, null on success
+   */
+  const register = useCallback(
+    async (username: string): Promise<string | null> => {
+      const trimmed = username.trim();
+      if (!trimmed) return "Username cannot be empty";
+      if (trimmed.length < 2) return "Username must be at least 2 characters";
+      if (trimmed.length > 30) return "Username must be 30 characters or less";
+
+      // Check if username is taken
+      const { data: existing } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", trimmed)
+        .single();
+
+      if (existing) return "Username is already taken";
+
+      // Use a custom avatar if one is mapped, otherwise pick a random default
+      const randomAvatar =
+        USER_AVATAR_MAP[trimmed] ??
+        DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)];
+      const { data, error } = await supabase
+        .from("users")
+        .insert({ username: trimmed, avatar_url: randomAvatar, is_agent: false })
+        .select()
+        .single();
+
+      if (error) return error.message;
+
+      localStorage.setItem(STORAGE_KEY, data.id);
+      setUser(data as User);
+      return null;
+    },
+    [supabase]
+  );
+
+  return (
+    <UserContext.Provider value={{ user, loading, register }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+/**
+ * Hook to access the current user context.
+ */
+export function useUser() {
+  return useContext(UserContext);
+}

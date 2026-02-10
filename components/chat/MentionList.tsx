@@ -1,0 +1,373 @@
+"use client";
+
+import Image from "next/image";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
+import type {
+  MentionCategory,
+  MentionItem,
+} from "@/lib/hooks/useMentionSuggestions";
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+/** Placeholder colors for avatars that have no photo. */
+const AVATAR_COLORS = [
+  "#FFD57E",
+  "#78D7DD",
+  "#112377",
+  "#FFB6BD",
+  "#DE8969",
+  "#608813",
+];
+
+/** Tab definitions in display order. */
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "recent", label: "Recent" },
+  { key: "agent", label: "Agent" },
+  { key: "people", label: "People" },
+  { key: "channel", label: "Channel" },
+  { key: "app", label: "App" },
+];
+
+type TabKey = "recent" | MentionCategory;
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Pick a deterministic placeholder colour from a string id.
+ */
+function avatarColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash << 5) - hash + id.charCodeAt(i);
+    hash |= 0;
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public types                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Props passed by the Tiptap suggestion renderer. */
+export interface MentionListProps {
+  /** Full list of all mentionable items (unfiltered). */
+  items: MentionItem[];
+  /** Current typed query after the @ character. */
+  query: string;
+  /** Called when the user selects an item. */
+  command: (item: { id: string; label: string }) => void;
+}
+
+/** Handle exposed to the suggestion renderer for keyboard navigation. */
+export interface MentionListHandle {
+  onKeyDown: (params: { event: KeyboardEvent }) => boolean;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Tabbed @mention dropdown with Recent / Agent / People / Channel / App tabs.
+ *
+ * - **No query (default):** "Recent" tab shows 3 of each category sorted
+ *   by recency. Other tabs show all items in that category.
+ * - **With query:** "Recent" becomes "Results" showing all matches.
+ *   Other tabs show only matching items in their category.
+ * - **Keyboard:** Up/Down moves through the visible list.
+ *   Left/Right switches between tabs.
+ */
+export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
+  function MentionList({ items, query, command }, ref) {
+    const [activeTab, setActiveTab] = useState<TabKey>("recent");
+    const [selectedIndex, setSelectedIndex] = useState(0);
+
+    const isSearching = query.length > 0;
+
+    /* ---- derived data -------------------------------------------- */
+
+    /** Items grouped by category. */
+    const byCategory = useMemo(() => {
+      const map: Record<MentionCategory, MentionItem[]> = {
+        agent: [],
+        people: [],
+        channel: [],
+        app: [],
+      };
+      for (const item of items) {
+        map[item.category].push(item);
+      }
+      return map;
+    }, [items]);
+
+    /** Items filtered by query (case-insensitive substring on label + content). */
+    const filtered = useMemo(() => {
+      if (!isSearching) return items;
+      const q = query.toLowerCase();
+      return items.filter(
+        (i) =>
+          i.label.toLowerCase().includes(q) ||
+          (i.searchableContent && i.searchableContent.toLowerCase().includes(q))
+      );
+    }, [items, query, isSearching]);
+
+    /** Filtered items grouped by category. */
+    const filteredByCategory = useMemo(() => {
+      const map: Record<MentionCategory, MentionItem[]> = {
+        agent: [],
+        people: [],
+        channel: [],
+        app: [],
+      };
+      for (const item of filtered) {
+        map[item.category].push(item);
+      }
+      return map;
+    }, [filtered]);
+
+    /** The visible item list for the current tab. */
+    const visibleItems = useMemo((): MentionItem[] => {
+      if (activeTab === "recent") {
+        if (isSearching) {
+          // "All results" mode — all matching items sorted by recency
+          return [...filtered]
+            .sort(
+              (a, b) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime()
+            )
+            .slice(0, 20);
+        }
+        // Recent mode — all items sorted purely by interaction recency
+        return [...items]
+          .sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() -
+              new Date(a.timestamp).getTime()
+          )
+          .slice(0, 20);
+      }
+      // Specific category tab
+      const source = isSearching
+        ? filteredByCategory[activeTab]
+        : byCategory[activeTab];
+      return source.slice(0, 20);
+    }, [activeTab, isSearching, items, filtered, filteredByCategory, byCategory]);
+
+    /** Tab list — swap "Recent" label for "Results" when searching. */
+    const tabList = useMemo(
+      () =>
+        TABS.map((t) =>
+          t.key === "recent" && isSearching
+            ? { ...t, label: "All results" }
+            : t
+        ),
+      [isSearching]
+    );
+
+    /* ---- reset selection when list or tab changes ---------------- */
+
+    useEffect(() => {
+      setSelectedIndex(0);
+    }, [visibleItems, activeTab]);
+
+    /** Reset to Recent tab when query clears. */
+    useEffect(() => {
+      if (!isSearching) {
+        setActiveTab("recent");
+      }
+    }, [isSearching]);
+
+    /* ---- actions ------------------------------------------------- */
+
+    const selectItem = useCallback(
+      (index: number) => {
+        const item = visibleItems[index];
+        if (item) {
+          // Encode category:id so rendered mention chips can navigate on click
+          command({ id: `${item.category}:${item.id}`, label: item.label });
+        }
+      },
+      [visibleItems, command]
+    );
+
+    const switchTab = useCallback(
+      (direction: -1 | 1) => {
+        setActiveTab((current) => {
+          const idx = TABS.findIndex((t) => t.key === current);
+          const next = (idx + direction + TABS.length) % TABS.length;
+          return TABS[next].key;
+        });
+      },
+      []
+    );
+
+    /* ---- imperative keyboard handler ----------------------------- */
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            setSelectedIndex((prev) =>
+              prev <= 0 ? visibleItems.length - 1 : prev - 1
+            );
+            return true;
+          }
+
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setSelectedIndex((prev) =>
+              prev >= visibleItems.length - 1 ? 0 : prev + 1
+            );
+            return true;
+          }
+
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            switchTab(-1);
+            return true;
+          }
+
+          if (event.key === "ArrowRight") {
+            event.preventDefault();
+            switchTab(1);
+            return true;
+          }
+
+          if (event.key === "Enter") {
+            event.preventDefault();
+            selectItem(selectedIndex);
+            return true;
+          }
+
+          if (event.key === "Escape") {
+            return true;
+          }
+
+          return false;
+        },
+      }),
+      [visibleItems, selectedIndex, selectItem, switchTab]
+    );
+
+    /* ---- render -------------------------------------------------- */
+
+    if (items.length === 0) return null;
+
+    return (
+      <div className="w-[405px] rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
+        {/* Tab bar */}
+        <div className="flex border-b border-[rgba(29,28,29,0.13)] px-2 pt-2">
+          {tabList.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-3 pb-2 border-b-2 text-[13px] font-semibold transition-colors ${
+                activeTab === tab.key
+                  ? "border-[#1264a3] text-[#1264a3]"
+                  : "border-transparent text-[rgba(29,28,29,0.7)] hover:text-[#1d1c1d]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Item list — fixed height so switching tabs doesn't resize */}
+        <div className="h-[288px] overflow-y-auto py-1">
+          {visibleItems.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-[13px] text-[rgba(29,28,29,0.5)]">
+              No results
+            </div>
+          ) : (
+            visibleItems.map((item, index) => (
+              <button
+                key={`${item.category}-${item.id}`}
+                className={`flex w-full items-center gap-2 px-4 py-[6px] text-left ${
+                  index === selectedIndex ? "bg-[#ebebeb]" : ""
+                }`}
+                onClick={() => selectItem(index)}
+                onMouseEnter={() => setSelectedIndex(index)}
+              >
+                {/* Avatar / Icon */}
+                <MentionAvatar item={item} />
+
+                {/* Label */}
+                <span className="truncate text-[15px] font-semibold text-[#1d1c1d]">
+                  {item.label}
+                </span>
+
+                {/* Category badge in Recent / Results tab */}
+                {activeTab === "recent" && (
+                  <span className="ml-auto shrink-0 text-[13px] text-[rgba(29,28,29,0.5)]">
+                    {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                  </span>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+);
+
+/* ------------------------------------------------------------------ */
+/*  Avatar sub-component                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Renders the appropriate avatar for a mention item:
+ * - Image for items with avatar_url
+ * - # icon for channels
+ * - Colored initial placeholder otherwise
+ */
+function MentionAvatar({ item }: { item: MentionItem }) {
+  if (item.category === "channel") {
+    return (
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] bg-[rgba(29,28,29,0.1)]">
+        <Image
+          src="/icons/hashtag-thin.svg"
+          alt="#"
+          width={14}
+          height={14}
+          className="opacity-70"
+        />
+      </span>
+    );
+  }
+
+  if (item.avatar_url) {
+    return (
+      <Image
+        src={item.avatar_url}
+        alt={item.label}
+        width={20}
+        height={20}
+        className="shrink-0 rounded-[3px] object-cover"
+      />
+    );
+  }
+
+  return (
+    <span
+      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] text-[11px] font-bold text-white"
+      style={{ backgroundColor: avatarColor(item.id) }}
+    >
+      {item.label.charAt(0).toUpperCase()}
+    </span>
+  );
+}

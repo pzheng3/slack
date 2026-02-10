@@ -214,6 +214,11 @@
   border-radius: 3px;
   padding: 0 2px;
   font-weight: 400;
+  cursor: pointer;
+}
+.mention:hover {
+  background-color: rgba(29, 155, 209, 0.2);
+  text-decoration: underline;
 }
 
 /* Headings (from Markdown) */
