@@ -1,26 +1,301 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-lato);
   --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Slack Figma color tokens */
+  --color-slack-bg: #3f0e40;
+  --color-slack-topbar: #431848;
+  --color-slack-sidebar: #552e5a;
+  --color-slack-sidebar-border: #522653;
+  --color-slack-sidebar-text: rgba(255, 255, 255, 0.7);
+  --color-slack-sidebar-text-hover: #ffffff;
+  --color-slack-sidebar-selected: #f7edfe;
+  --color-slack-sidebar-selected-text: #552e5a;
+  --color-slack-sidebar-btn-bg: rgba(255, 255, 255, 0.1);
+  --color-slack-chat-bg: #ffffff;
+  --color-slack-text: #1d1c1d;
+  --color-slack-text-secondary: #616061;
+  --color-slack-text-placeholder: rgba(29, 28, 29, 0.5);
+  --color-slack-border: rgba(29, 28, 29, 0.13);
+  --color-slack-border-light: rgba(29, 28, 29, 0.06);
+  --color-slack-toolbar-bg: #f8f8f8;
+  --color-slack-send-active: #007a5a;
+  --color-slack-badge-bg: #ece7ec;
+  --color-slack-badge-text: #3f0e40;
+  --color-slack-mention: #1264a3;
+  --color-slack-mention-bg: rgba(29, 155, 209, 0.1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: #1d1c1d;
+  --card: #ffffff;
+  --card-foreground: #1d1c1d;
+  --popover: #ffffff;
+  --popover-foreground: #1d1c1d;
+  --primary: #1d1c1d;
+  --primary-foreground: #ffffff;
+  --secondary: #f8f8f8;
+  --secondary-foreground: #1d1c1d;
+  --muted: #f8f8f8;
+  --muted-foreground: #616061;
+  --accent: rgba(29, 28, 29, 0.06);
+  --accent-foreground: #1d1c1d;
+  --destructive: #e01e5a;
+  --border: rgba(29, 28, 29, 0.13);
+  --input: rgba(29, 28, 29, 0.13);
+  --ring: rgba(29, 28, 29, 0.3);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: #552e5a;
+  --sidebar-foreground: rgba(255, 255, 255, 0.7);
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #552e5a;
+  --sidebar-accent: #f7edfe;
+  --sidebar-accent-foreground: #552e5a;
+  --sidebar-border: #522653;
+  --sidebar-ring: rgba(255, 255, 255, 0.2);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ======================================================
+   Tiptap editor – placeholder
+   ====================================================== */
+.tiptap-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--color-slack-text-placeholder);
+  pointer-events: none;
+  height: 0;
+}
+
+/* ======================================================
+   Shared rich-text styles (editor + rendered messages)
+   ====================================================== */
+.rich-text p {
+  margin: 0;
+}
+
+.rich-text strong {
+  font-weight: 700;
+}
+
+.rich-text em {
+  font-style: italic;
+}
+
+.rich-text s {
+  text-decoration: line-through;
+}
+
+/* Inline code */
+.rich-text code {
+  background: rgba(29, 28, 29, 0.04);
+  border: 1px solid rgba(29, 28, 29, 0.13);
+  border-radius: 3px;
+  padding: 2px 3px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: #e01e5a;
+}
+
+/* Code block */
+.rich-text pre {
+  background: rgba(29, 28, 29, 0.04);
+  border: 1px solid rgba(29, 28, 29, 0.13);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rich-text pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Lists */
+.rich-text ul {
+  list-style: disc;
+  padding-left: 24px;
+  margin: 2px 0;
+}
+
+.rich-text ol {
+  list-style: decimal;
+  padding-left: 24px;
+  margin: 2px 0;
+}
+
+.rich-text li {
+  margin: 1px 0;
+}
+
+.rich-text li p {
+  margin: 0;
+}
+
+/* Links */
+.rich-text a {
+  color: #1264a3;
+  text-decoration: none;
+}
+
+.rich-text a:hover {
+  text-decoration: underline;
+}
+
+/* @mention chips */
+.mention {
+  background-color: var(--color-slack-mention-bg);
+  color: var(--color-slack-mention);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 400;
+}
+
+/* Headings (from Markdown) */
+.rich-text h1 {
+  font-size: 1.25em;
+  font-weight: 900;
+  margin: 6px 0 2px;
+}
+
+.rich-text h2 {
+  font-size: 1.125em;
+  font-weight: 800;
+  margin: 6px 0 2px;
+}
+
+.rich-text h3 {
+  font-size: 1em;
+  font-weight: 700;
+  margin: 4px 0 2px;
+}
+
+/* Blockquote */
+.rich-text blockquote {
+  border-left: 4px solid rgba(29, 28, 29, 0.13);
+  padding-left: 12px;
+  margin: 4px 0;
+  color: var(--color-slack-text-secondary);
+}
+
+/* Horizontal rule */
+.rich-text hr {
+  border: none;
+  border-top: 1px solid rgba(29, 28, 29, 0.13);
+  margin: 8px 0;
+}
+
+/* Tables (GFM) */
+.rich-text table {
+  border-collapse: collapse;
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.rich-text th,
+.rich-text td {
+  border: 1px solid rgba(29, 28, 29, 0.13);
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.rich-text th {
+  font-weight: 700;
+  background: rgba(29, 28, 29, 0.04);
+}
+
+/* Images within messages */
+.rich-text img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+/* ======================================================
+   Emoji picker (emoji-mart) — Slack-style theming
+   ====================================================== */
+em-emoji-picker {
+  --rgb-background: 255, 255, 255;
+  --rgb-input: 248, 248, 248;
+  --rgb-color: 29, 28, 29;
+  --rgb-accent: 85, 46, 90;
+  --color-border: rgba(29, 28, 29, 0.13);
+  --color-border-over: rgba(29, 28, 29, 0.2);
+  --font-family: var(--font-lato), "Lato", system-ui, -apple-system, sans-serif;
+  --font-size: 13px;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  --border-radius: 8px;
+  --category-icon-size: 18px;
+  border: 1px solid rgba(29, 28, 29, 0.13);
+  border-radius: 8px;
+  height: 320px !important;
+}
+
+/** Container reset — remove Popover padding so picker fills the entire area */
+.emoji-picker-container {
+  line-height: 0;
 }
