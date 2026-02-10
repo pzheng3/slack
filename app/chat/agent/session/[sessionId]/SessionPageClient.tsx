@@ -51,6 +51,7 @@ export default function SessionPageClient({
 
         disabled={loading || streaming}
         autoFocus
+        defaultShowToolbar={false}
       />
     </>
   );

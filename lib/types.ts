@@ -38,3 +38,33 @@ export interface Message {
 export interface MessageWithSender extends Message {
   sender: Pick<User, "id" | "username" | "avatar_url" | "is_agent">;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Slash Commands                                                     */
+/* ------------------------------------------------------------------ */
+
+/** Category a slash command item belongs to. */
+export type SlashCommandCategory = "command" | "skill" | "app";
+
+/**
+ * A single item shown in the `/` slash command menu.
+ * Covers prepackaged prompts (commands), Anthropic skills, and app actions.
+ */
+export interface SlashCommandItem {
+  /** Unique identifier (e.g. "command-summarize", "skill-web-search") */
+  id: string;
+  /** Display label shown in the menu (e.g. "/summarize") */
+  label: string;
+  /** One-line description shown as subtitle and on hover */
+  description: string;
+  /** Icon name referencing /icons/{icon}.svg, or null */
+  icon: string | null;
+  /** Avatar URL for app items, or null */
+  avatar_url: string | null;
+  /** Which tab category this item belongs to */
+  category: SlashCommandCategory;
+  /** The prompt body / skill instructions from the markdown file */
+  body: string;
+  /** ISO timestamp for recency sorting */
+  timestamp: string;
+}

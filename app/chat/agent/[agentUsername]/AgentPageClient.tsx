@@ -48,6 +48,7 @@ export default function AgentPageClient({
         onSend={sendMessage}
 
         disabled={loading || streaming}
+        defaultShowToolbar={false}
       />
     </>
   );

@@ -15,6 +15,9 @@ import {
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { useMentionSuggestions } from "@/lib/hooks/useMentionSuggestions";
 import { createMentionSuggestion } from "@/lib/mention-suggestion";
+import { useSlashCommands } from "@/lib/hooks/useSlashCommands";
+import { createSlashSuggestion } from "@/lib/slash-suggestion";
+import { SlashCommand } from "@/lib/slash-command-extension";
 
 interface MessageComposerProps {
   /** Called when the user sends a message (content is HTML) */
@@ -25,6 +28,8 @@ interface MessageComposerProps {
   disabled?: boolean;
   /** Whether to auto-focus the editor on mount so the user can type immediately */
   autoFocus?: boolean;
+  /** Whether the formatting toolbar is visible by default (default: true) */
+  defaultShowToolbar?: boolean;
 }
 
 /**
@@ -37,8 +42,9 @@ export function MessageComposer({
   placeholder = "Write a message,  @ to mention, / for shortcuts",
   disabled = false,
   autoFocus = false,
+  defaultShowToolbar = true,
 }: MessageComposerProps) {
-  const [showToolbar, setShowToolbar] = useState(true);
+  const [showToolbar, setShowToolbar] = useState(defaultShowToolbar);
   const [hasContent, setHasContent] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const handleSendRef = useRef<(() => void) | null>(null);
@@ -55,6 +61,28 @@ export function MessageComposer({
   const mentionSuggestion = useMemo(
     () => createMentionSuggestion(() => mentionItemsRef.current, mentionOpenRef),
     []
+  );
+
+  /** All slash command items (commands, skills, apps) for the / menu. */
+  const { items: slashItems, recentIds: slashRecentIds, recordRecent: slashRecordRecent } = useSlashCommands();
+  const slashItemsRef = useRef(slashItems);
+  slashItemsRef.current = slashItems;
+  const slashRecentIdsRef = useRef(slashRecentIds);
+  slashRecentIdsRef.current = slashRecentIds;
+
+  /** Tracks whether the / slash command popup is currently visible. */
+  const slashOpenRef = useRef(false);
+
+  /** Stable slash suggestion config — uses refs so data stays fresh. */
+  const slashSuggestion = useMemo(
+    () =>
+      createSlashSuggestion(
+        () => slashItemsRef.current,
+        () => slashRecentIdsRef.current,
+        slashRecordRecent,
+        slashOpenRef
+      ),
+    [slashRecordRecent]
   );
 
   const editor = useEditor({
@@ -77,6 +105,9 @@ export function MessageComposer({
         HTMLAttributes: { class: "mention" },
         suggestion: mentionSuggestion,
       }),
+      SlashCommand.configure({
+        suggestion: slashSuggestion,
+      }),
       Placeholder.configure({ placeholder }),
     ],
     editorProps: {
@@ -86,8 +117,8 @@ export function MessageComposer({
       },
       handleKeyDown(view, event) {
         if (event.key === "Enter" && !event.shiftKey) {
-          // If the @mention suggestion popup is open, let it handle Enter
-          if (mentionOpenRef.current) {
+          // If the @mention or /slash suggestion popup is open, let it handle Enter
+          if (mentionOpenRef.current || slashOpenRef.current) {
             return false;
           }
 
