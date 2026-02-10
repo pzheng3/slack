@@ -48,6 +48,9 @@ export function createMentionSuggestion(
         null;
       let popup: HTMLDivElement | null = null;
       let clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
+      let resizeHandler: (() => void) | null = null;
+      /** Store the latest clientRect getter so resize can recalculate. */
+      let latestClientRect: (() => DOMRect | null) | null = null;
 
       /**
        * Tear down the popup, renderer, click listener, and sync the open ref.
@@ -59,6 +62,11 @@ export function createMentionSuggestion(
           document.removeEventListener("mousedown", clickOutsideHandler);
           clickOutsideHandler = null;
         }
+        if (resizeHandler) {
+          window.removeEventListener("resize", resizeHandler);
+          resizeHandler = null;
+        }
+        latestClientRect = null;
         popup?.remove();
         popup = null;
         renderer?.destroy();
@@ -87,7 +95,12 @@ export function createMentionSuggestion(
 
           popup.appendChild(renderer.element);
 
-          updatePosition(popup, props.clientRect);
+          latestClientRect = props.clientRect ?? null;
+          updatePosition(popup, latestClientRect);
+
+          // Reposition on window resize so the popup tracks the cursor.
+          resizeHandler = () => updatePosition(popup, latestClientRect);
+          window.addEventListener("resize", resizeHandler);
 
           // Dismiss when clicking anywhere outside the popup.
           // Uses requestAnimationFrame so the current mousedown/keydown that
@@ -112,7 +125,8 @@ export function createMentionSuggestion(
             command: props.command,
           });
 
-          updatePosition(popup, props.clientRect);
+          latestClientRect = props.clientRect ?? null;
+          updatePosition(popup, latestClientRect);
         },
 
         /**

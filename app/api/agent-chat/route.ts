@@ -1,6 +1,28 @@
-import { GENERIC_AGENT } from "@/lib/constants";
+import { AGENTS, GENERIC_AGENT } from "@/lib/constants";
 import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Resolve the system prompt for a given agent.
+ * Priority: explicit systemPrompt param > AGENTS match by username > GENERIC_AGENT.
+ *
+ * @param agentUsername - The agent's username (optional)
+ * @param systemPrompt - An explicit system prompt override (optional)
+ * @returns The resolved system prompt string
+ */
+function resolveSystemPrompt(
+  agentUsername?: string,
+  systemPrompt?: string
+): string {
+  if (systemPrompt) return systemPrompt;
+
+  if (agentUsername) {
+    const agentDef = AGENTS.find((a) => a.username === agentUsername);
+    if (agentDef) return agentDef.system_prompt;
+  }
+
+  return GENERIC_AGENT.system_prompt;
+}
 
 /**
  * POST /api/agent-chat
@@ -11,7 +33,7 @@ import { NextRequest, NextResponse } from "next/server";
  *
  * Streams the response back to the client as SSE events.
  *
- * Body: { systemPrompt?: string, messages: { role: string, content: string }[] }
+ * Body: { agentUsername?: string, systemPrompt?: string, messages: { role: string, content: string }[] }
  */
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -23,13 +45,14 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { systemPrompt, messages } = body as {
+  const { agentUsername, systemPrompt, messages } = body as {
+    agentUsername?: string;
     systemPrompt?: string;
     messages: { role: "user" | "assistant"; content: string }[];
   };
 
-  // Resolve the system prompt
-  const resolvedSystemPrompt = systemPrompt || GENERIC_AGENT.system_prompt;
+  // Resolve the system prompt — agent-specific > explicit > generic
+  const resolvedSystemPrompt = resolveSystemPrompt(agentUsername, systemPrompt);
 
   const openai = new OpenAI({ apiKey });
 

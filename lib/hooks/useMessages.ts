@@ -5,9 +5,13 @@ import { useUser } from "@/components/providers/UserProvider";
 import type { MessageWithSender } from "@/lib/types";
 import { useCallback, useEffect, useState } from "react";
 
+/** Module-level cache: conversationId → messages */
+const messagesCache = new Map<string, MessageWithSender[]>();
+
 /**
  * Hook that fetches messages for a given conversation and subscribes to
  * Supabase Realtime for new messages.
+ * Uses an in-memory cache to avoid a loading flash on revisits.
  *
  * @param conversationId - The conversation to fetch messages for (null = skip)
  * @returns messages, loading state, and a sendMessage function
@@ -15,8 +19,11 @@ import { useCallback, useEffect, useState } from "react";
 export function useMessages(conversationId: string | null) {
   const supabase = useSupabase();
   const { user } = useUser();
-  const [messages, setMessages] = useState<MessageWithSender[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = conversationId ? messagesCache.get(conversationId) : null;
+  const [messages, setMessages] = useState<MessageWithSender[]>(cached ?? []);
+  const [loading, setLoading] = useState(
+    conversationId ? !messagesCache.has(conversationId) : false
+  );
 
   // Fetch initial messages
   useEffect(() => {
@@ -26,7 +33,12 @@ export function useMessages(conversationId: string | null) {
       return;
     }
 
-    setLoading(true);
+    // Only show loading spinner when there's no cached data
+    if (!messagesCache.has(conversationId)) {
+      setLoading(true);
+    }
+
+    let cancelled = false;
 
     async function fetchMessages() {
       const { data, error } = await supabase
@@ -41,16 +53,24 @@ export function useMessages(conversationId: string | null) {
         .order("created_at", { ascending: true })
         .limit(200);
 
+      if (cancelled) return;
+
       if (error) {
         console.error("Failed to fetch messages:", error.message);
         setMessages([]);
       } else {
-        setMessages(data as unknown as MessageWithSender[]);
+        const msgs = data as unknown as MessageWithSender[];
+        setMessages(msgs);
+        messagesCache.set(conversationId!, msgs);
       }
       setLoading(false);
     }
 
     fetchMessages();
+
+    return () => {
+      cancelled = true;
+    };
   }, [supabase, conversationId]);
 
   // Subscribe to realtime inserts
@@ -84,7 +104,14 @@ export function useMessages(conversationId: string | null) {
             setMessages((prev) => {
               // Avoid duplicates
               if (prev.some((m) => m.id === data.id)) return prev;
-              return [...prev, data as unknown as MessageWithSender];
+              const updated = [
+                ...prev,
+                data as unknown as MessageWithSender,
+              ];
+              if (conversationId) {
+                messagesCache.set(conversationId, updated);
+              }
+              return updated;
             });
           }
         }

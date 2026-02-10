@@ -2,19 +2,43 @@
 
 import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MessageList } from "@/components/chat/MessageList";
+import { useAgentAutoReply } from "@/lib/hooks/useAgentAutoReply";
 import { useChannelConversation } from "@/lib/hooks/useConversation";
 import { useMessages } from "@/lib/hooks/useMessages";
 import Image from "next/image";
+import { useCallback } from "react";
 
 /**
  * Channel chat page matching the Figma design.
  * Header shows # icon + channel name.
+ *
+ * Integrates with `useAgentAutoReply` so that AI character agents
+ * (Elon Musk, Steve Jobs) respond when @mentioned or when the user
+ * posts in one of the agent's related channels.
+ *
  * @param {{ name: string }} props
  */
 export default function ChannelPageClient({ name }: { name: string }) {
   const { conversation, loading: convLoading } = useChannelConversation(name);
   const { messages, loading: msgsLoading, sendMessage } = useMessages(
     conversation?.id ?? null
+  );
+  const { triggerAutoReply } = useAgentAutoReply(
+    conversation?.id ?? null,
+    name,
+    messages
+  );
+
+  /**
+   * Send the user's message and then trigger any applicable agent auto-replies.
+   */
+  const handleSend = useCallback(
+    async (content: string) => {
+      await sendMessage(content);
+      // Fire auto-reply asynchronously — don't block the UI
+      triggerAutoReply(content);
+    },
+    [sendMessage, triggerAutoReply]
   );
 
   return (
@@ -49,8 +73,7 @@ export default function ChannelPageClient({ name }: { name: string }) {
 
       {/* Composer */}
       <MessageComposer
-        onSend={sendMessage}
-
+        onSend={handleSend}
         disabled={!conversation}
       />
     </>

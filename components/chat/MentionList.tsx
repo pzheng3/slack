@@ -7,6 +7,7 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type {
@@ -92,6 +93,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
   function MentionList({ items, query, command }, ref) {
     const [activeTab, setActiveTab] = useState<TabKey>("recent");
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const listRef = useRef<HTMLDivElement>(null);
 
     const isSearching = query.length > 0;
 
@@ -189,6 +191,14 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
       }
     }, [isSearching]);
 
+    /** Scroll the selected item into view when navigating via keyboard. */
+    useEffect(() => {
+      const container = listRef.current;
+      if (!container) return;
+      const child = container.children[selectedIndex] as HTMLElement | undefined;
+      child?.scrollIntoView({ block: "nearest" });
+    }, [selectedIndex]);
+
     /* ---- actions ------------------------------------------------- */
 
     const selectItem = useCallback(
@@ -221,16 +231,14 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
         onKeyDown: ({ event }: { event: KeyboardEvent }) => {
           if (event.key === "ArrowUp") {
             event.preventDefault();
-            setSelectedIndex((prev) =>
-              prev <= 0 ? visibleItems.length - 1 : prev - 1
-            );
+            setSelectedIndex((prev) => Math.max(0, prev - 1));
             return true;
           }
 
           if (event.key === "ArrowDown") {
             event.preventDefault();
             setSelectedIndex((prev) =>
-              prev >= visibleItems.length - 1 ? 0 : prev + 1
+              Math.min(visibleItems.length - 1, prev + 1)
             );
             return true;
           }
@@ -287,7 +295,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
         </div>
 
         {/* Item list — fixed height so switching tabs doesn't resize */}
-        <div className="h-[288px] overflow-y-auto py-1">
+        <div ref={listRef} className="h-[288px] overflow-y-auto py-1">
           {visibleItems.length === 0 ? (
             <div className="flex h-full items-center justify-center text-[13px] text-[rgba(29,28,29,0.5)]">
               No results

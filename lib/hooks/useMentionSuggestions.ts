@@ -2,7 +2,7 @@
 
 import { useSupabase } from "@/components/providers/SupabaseProvider";
 import { useUser } from "@/components/providers/UserProvider";
-import { GENERIC_AGENT } from "@/lib/constants";
+import { AGENTS, GENERIC_AGENT } from "@/lib/constants";
 import { useCallback, useEffect, useState } from "react";
 
 /**
@@ -228,9 +228,13 @@ export function useMentionSuggestions(): MentionItem[] {
       }
     }
 
-    // People — all non-agent users; use latest DM timestamp when available
+    // Set of predefined AI agent usernames (Elon Musk, Steve Jobs, etc.)
+    const characterAgentUsernames = new Set(AGENTS.map((a) => a.username));
+
+    // People — all non-agent users + predefined AI character agents
+    // (Character agents appear in the DM list and are mentionable as people)
     for (const u of allUsers) {
-      if (!u.is_agent) {
+      if (!u.is_agent || characterAgentUsernames.has(u.username)) {
         result.push({
           id: u.id,
           label: u.username,

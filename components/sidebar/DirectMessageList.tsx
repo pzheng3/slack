@@ -2,11 +2,16 @@
 
 import { useSupabase } from "@/components/providers/SupabaseProvider";
 import { useUser } from "@/components/providers/UserProvider";
+import { AGENTS } from "@/lib/constants";
 import { useDM } from "@/lib/hooks/useDM";
 import type { User } from "@/lib/types";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+
+/** Set of predefined AI character agent usernames */
+const CHARACTER_AGENT_NAMES = new Set(AGENTS.map((a) => a.username));
 
 interface DirectMessageListProps {
   onNavigate: () => void;
@@ -19,9 +24,12 @@ interface DirectMessageListProps {
 type DmConversationMap = Record<string, string>;
 
 /**
- * Renders every registered (non-agent) user in the Direct Messages section.
+ * Renders every registered (non-agent) user in the Direct Messages section,
+ * plus predefined AI character agents (Elon Musk, Steve Jobs, etc.).
  * The current user appears first with a "you" label (self-DM).
+ * AI character agents appear after the current user, before other humans.
  * Clicking any user finds or creates a DM conversation and navigates to it.
+ * Clicking an AI character navigates to their agent chat page.
  * New users are picked up in real time via a Supabase subscription.
  */
 export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
@@ -36,28 +44,49 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
     Pick<User, "id" | "username" | "avatar_url">[]
   >([]);
 
+  /** AI character agents from the database */
+  const [characterAgents, setCharacterAgents] = useState<
+    Pick<User, "id" | "username" | "avatar_url">[]
+  >([]);
+
   /** Reactive map of userId → conversationId for active-state highlighting */
   const [dmMap, setDmMap] = useState<DmConversationMap>({});
 
   /** The conversation ID the user is currently viewing (derived from the URL) */
   const [activeDmConvId, setActiveDmConvId] = useState<string | null>(null);
 
+  /** The agent username currently active (derived from the URL) */
+  const [activeAgentUsername, setActiveAgentUsername] = useState<string | null>(
+    null
+  );
+
   // -------------------------------------------------------------------
-  // Fetch all non-agent users
+  // Fetch all non-agent users + AI character agents
   // -------------------------------------------------------------------
   const fetchAllUsers = useCallback(async () => {
     if (!user) return;
 
     const { data } = await supabase
       .from("users")
-      .select("id, username, avatar_url")
-      .eq("is_agent", false)
+      .select("id, username, avatar_url, is_agent")
       .order("username");
 
     if (!data) return;
 
-    const others = data.filter((u) => u.id !== user.id);
-    setOtherUsers(others);
+    const humans: Pick<User, "id" | "username" | "avatar_url">[] = [];
+    const agents: Pick<User, "id" | "username" | "avatar_url">[] = [];
+
+    for (const u of data) {
+      if (u.id === user.id) continue;
+      if (u.is_agent && CHARACTER_AGENT_NAMES.has(u.username)) {
+        agents.push(u);
+      } else if (!u.is_agent) {
+        humans.push(u);
+      }
+    }
+
+    setOtherUsers(humans);
+    setCharacterAgents(agents);
   }, [supabase, user]);
 
   useEffect(() => {
@@ -141,11 +170,16 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
   }, [supabase, fetchAllUsers]);
 
   // -------------------------------------------------------------------
-  // Resolve the active DM conversation from the URL pathname
+  // Resolve the active DM conversation or agent page from the URL
   // -------------------------------------------------------------------
   useEffect(() => {
-    const match = pathname.match(/^\/chat\/dm\/(.+)$/);
-    setActiveDmConvId(match ? match[1] : null);
+    const dmMatch = pathname.match(/^\/chat\/dm\/(.+)$/);
+    setActiveDmConvId(dmMatch ? dmMatch[1] : null);
+
+    const agentMatch = pathname.match(/^\/chat\/agent\/([^/]+)$/);
+    setActiveAgentUsername(
+      agentMatch ? decodeURIComponent(agentMatch[1]) : null
+    );
   }, [pathname]);
 
   // -------------------------------------------------------------------
@@ -195,7 +229,34 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
         </span>
       </button>
 
-      {/* All other registered users */}
+      {/* AI character agents — shown before human users */}
+      {characterAgents.map((a) => {
+        const href = `/chat/agent/${encodeURIComponent(a.username)}`;
+        const isActive = activeAgentUsername === a.username;
+
+        return (
+          <Link
+            key={a.id}
+            href={href}
+            onClick={onNavigate}
+            className={`
+              flex h-[28px] w-full min-w-0 items-center gap-2 rounded-[6px] px-3 text-left
+              ${
+                isActive
+                  ? "bg-[var(--color-slack-sidebar-selected)] text-[var(--color-slack-sidebar-selected-text)]"
+                  : "text-[var(--color-slack-sidebar-text)] hover:bg-white/5"
+              }
+            `}
+          >
+            <DmAvatar avatarUrl={a.avatar_url} username={a.username} />
+            <span className="min-w-0 flex-1 truncate text-[15px] leading-[17px]">
+              {a.username}
+            </span>
+          </Link>
+        );
+      })}
+
+      {/* All other registered human users */}
       {otherUsers.map((u) => {
         const convId = dmMap[u.id];
         const isActive = !!convId && convId === activeDmConvId;

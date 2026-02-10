@@ -5,8 +5,12 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { AGENTS } from "@/lib/constants";
 import { useDM } from "@/lib/hooks/useDM";
 import type { MessageWithSender } from "@/lib/types";
+
+/** Set of AI character agent usernames for mention click navigation */
+const CHARACTER_AGENT_NAMES = new Set(AGENTS.map((a) => a.username));
 
 interface MessageItemProps {
   message: MessageWithSender;
@@ -68,8 +72,16 @@ function MessageBody({ content }: { content: string }) {
           router.push(`/chat/agent/session/${entityId}`);
           break;
         case "people": {
-          const convId = await findOrCreateDM(entityId);
-          if (convId) router.push(`/chat/dm/${convId}`);
+          // If the mentioned person is an AI character agent, navigate to agent chat
+          const mentionLabel = target.textContent?.replace(/^@/, "") ?? "";
+          if (CHARACTER_AGENT_NAMES.has(mentionLabel)) {
+            router.push(
+              `/chat/agent/${encodeURIComponent(mentionLabel)}`
+            );
+          } else {
+            const convId = await findOrCreateDM(entityId);
+            if (convId) router.push(`/chat/dm/${convId}`);
+          }
           break;
         }
         default:
@@ -108,11 +120,14 @@ export function MessageItem({ message, compact = false }: MessageItemProps) {
     minute: "2-digit",
   });
 
+  /** Compact (consecutive) messages show time without the AM/PM suffix */
+  const compactTime = time.replace(/\s*(AM|PM)$/i, "");
+
   if (compact) {
     return (
-      <div className="group flex items-start gap-2 px-5 py-0.5">
-        <span className="w-[44px] shrink-0 pt-[2px] text-right text-[12px] leading-[1.467] text-[var(--color-slack-text-secondary)] opacity-0 group-hover:opacity-100">
-          {time}
+      <div className="group flex items-start gap-2 px-5 py-0.5 hover:bg-[var(--color-slack-border-light)]">
+        <span className="w-9 shrink-0 pt-[2px] text-right text-[12px] leading-[1.467] text-[var(--color-slack-text-secondary)] opacity-0 group-hover:opacity-100">
+          {compactTime}
         </span>
         <div className="min-w-0 flex-1 px-2">
           <MessageBody content={message.content} />
@@ -122,7 +137,7 @@ export function MessageItem({ message, compact = false }: MessageItemProps) {
   }
 
   return (
-    <div className="group flex items-start gap-2 px-5 py-2">
+    <div className="group flex items-start gap-2 px-5 py-2 hover:bg-[var(--color-slack-border-light)]">
       {/* Avatar */}
       <div className="flex shrink-0 items-center justify-center pt-1">
         <div className="relative h-9 w-9 overflow-hidden rounded-[5.5px]">
@@ -147,7 +162,7 @@ export function MessageItem({ message, compact = false }: MessageItemProps) {
         {/* Header: name + timestamp */}
         <div className="flex items-center gap-[18px]">
           <div className="flex items-center gap-1">
-            <button className="text-[15px] font-black leading-[1.467] text-[var(--color-slack-text)]">
+            <button className="text-[15px] font-black leading-[1.467] text-[var(--color-slack-text)] hover:underline">
               {message.sender.username}
             </button>
           </div>

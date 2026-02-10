@@ -7,19 +7,38 @@ import type { Conversation, MessageWithSender, User } from "@/lib/types";
 import { useCallback, useEffect, useState } from "react";
 
 /**
+ * Cached result for a session chat, keyed by sessionId.
+ */
+interface SessionChatCacheEntry {
+  conversation: Conversation;
+  agent: User;
+  messages: MessageWithSender[];
+}
+
+/** Module-level cache: sessionId → cached init data */
+const sessionChatCache = new Map<string, SessionChatCacheEntry>();
+
+/**
  * Hook for managing a session-based agent chat conversation.
  * Unlike useAgentChat (which works with predefined agents by username),
  * this hook works with conversation IDs for user-created sessions.
+ *
+ * Uses an in-memory cache to avoid a loading flash on revisits.
  *
  * @param sessionId - The conversation UUID
  */
 export function useSessionChat(sessionId: string) {
   const supabase = useSupabase();
   const { user } = useUser();
-  const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [agent, setAgent] = useState<User | null>(null);
-  const [messages, setMessages] = useState<MessageWithSender[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = sessionChatCache.get(sessionId);
+  const [conversation, setConversation] = useState<Conversation | null>(
+    cached?.conversation ?? null
+  );
+  const [agent, setAgent] = useState<User | null>(cached?.agent ?? null);
+  const [messages, setMessages] = useState<MessageWithSender[]>(
+    cached?.messages ?? []
+  );
+  const [loading, setLoading] = useState(!cached);
   const [streaming, setStreaming] = useState(false);
 
   // Load the conversation, agent, and messages
@@ -27,7 +46,10 @@ export function useSessionChat(sessionId: string) {
     if (!user) return;
 
     async function init() {
-      setLoading(true);
+      // Only show loading spinner when there's no cached data
+      if (!sessionChatCache.has(sessionId)) {
+        setLoading(true);
+      }
 
       // Fetch the conversation
       const { data: conv } = await supabase
@@ -66,7 +88,17 @@ export function useSessionChat(sessionId: string) {
         .order("created_at", { ascending: true })
         .limit(200);
 
-      if (msgs) setMessages(msgs as unknown as MessageWithSender[]);
+      const typedMsgs = (msgs as unknown as MessageWithSender[]) ?? [];
+      setMessages(typedMsgs);
+
+      // Populate cache for instant rendering on revisits
+      if (agentData) {
+        sessionChatCache.set(sessionId, {
+          conversation: conv as Conversation,
+          agent: agentData as User,
+          messages: typedMsgs,
+        });
+      }
 
       setLoading(false);
     }

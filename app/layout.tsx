@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Slack Input",
+  title: "Slack",
   description: "A Slack-inspired chat application",
 };
 

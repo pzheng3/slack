@@ -43,11 +43,12 @@ export function UsernameModal() {
     <Dialog open>
       <DialogContent
         className="sm:max-w-md"
+        showCloseButton={false}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle className="text-xl">Welcome to Slack Input</DialogTitle>
+          <DialogTitle className="text-xl">Welcome to Slack</DialogTitle>
           <DialogDescription>
             Choose a username to start chatting. This will be your display name
             across all conversations.

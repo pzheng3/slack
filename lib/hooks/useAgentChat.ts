@@ -6,6 +6,18 @@ import type { Conversation, MessageWithSender, User } from "@/lib/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
+ * Cached result for an agent chat, keyed by agentUsername.
+ */
+interface AgentChatCacheEntry {
+  conversation: Conversation;
+  agent: User;
+  messages: MessageWithSender[];
+}
+
+/** Module-level cache: agentUsername → cached init data */
+const agentChatCache = new Map<string, AgentChatCacheEntry>();
+
+/**
  * Hook for managing an agent chat conversation.
  * Handles finding/creating the conversation, fetching messages,
  * sending user messages, streaming AI responses, and persisting
@@ -17,15 +29,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * A Supabase Realtime subscription keeps the local message list in sync
  * when messages are inserted from other tabs/clients.
  *
+ * Uses an in-memory cache to avoid a loading flash on revisits.
+ *
  * @param agentUsername - The agent's username
  */
 export function useAgentChat(agentUsername: string) {
   const supabase = useSupabase();
   const { user } = useUser();
-  const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [agent, setAgent] = useState<User | null>(null);
-  const [messages, setMessages] = useState<MessageWithSender[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = agentChatCache.get(agentUsername);
+  const [conversation, setConversation] = useState<Conversation | null>(
+    cached?.conversation ?? null
+  );
+  const [agent, setAgent] = useState<User | null>(cached?.agent ?? null);
+  const [messages, setMessages] = useState<MessageWithSender[]>(
+    cached?.messages ?? []
+  );
+  const [loading, setLoading] = useState(!cached);
   const [streaming, setStreaming] = useState(false);
 
   /** Ref holding the current streaming placeholder ID so Realtime can skip it */
@@ -40,7 +59,10 @@ export function useAgentChat(agentUsername: string) {
     let aborted = false;
 
     async function init() {
-      setLoading(true);
+      // Only show loading spinner when there's no cached data
+      if (!agentChatCache.has(agentUsername)) {
+        setLoading(true);
+      }
       // #region agent log
       fetch('http://127.0.0.1:7247/ingest/10852203-67bc-4ede-9b0a-c6f770a8c961',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAgentChat.ts:init-start',message:'init started',data:{agentUsername,userId:user?.id},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
       // #endregion
@@ -74,6 +96,7 @@ export function useAgentChat(agentUsername: string) {
       if (aborted) return;
 
       let convId: string | null = null;
+      let convObj: Conversation | null = null;
 
       if (myMemberships && myMemberships.length > 0) {
         const myConvIds = myMemberships.map((m) => m.conversation_id);
@@ -103,7 +126,8 @@ export function useAgentChat(agentUsername: string) {
 
           if (agentConv) {
             convId = agentConv.id;
-            setConversation(agentConv as Conversation);
+            convObj = agentConv as Conversation;
+            setConversation(convObj);
           }
         }
       }
@@ -144,7 +168,8 @@ export function useAgentChat(agentUsername: string) {
         }
 
         convId = newConv.id;
-        setConversation(newConv as Conversation);
+        convObj = newConv as Conversation;
+        setConversation(convObj);
       }
 
       // 4. Load persisted message history from DB
@@ -166,12 +191,22 @@ export function useAgentChat(agentUsername: string) {
             msgsErr.message
           );
         } else if (msgs) {
-          setMessages(msgs as unknown as MessageWithSender[]);
+          const typedMsgs = msgs as unknown as MessageWithSender[];
+          setMessages(typedMsgs);
+
+          // Populate cache for instant rendering on revisits
+          if (convObj) {
+            agentChatCache.set(agentUsername, {
+              conversation: convObj,
+              agent: agentData as User,
+              messages: typedMsgs,
+            });
+          }
         }
       }
 
       // #region agent log
-      fetch('http://127.0.0.1:7247/ingest/10852203-67bc-4ede-9b0a-c6f770a8c961',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAgentChat.ts:init-end',message:'init completed',data:{agentUsername,convId,aborted,hasAgent:!!agentData,msgCount:msgs?.length??0},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7247/ingest/10852203-67bc-4ede-9b0a-c6f770a8c961',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAgentChat.ts:init-end',message:'init completed',data:{agentUsername,convId,aborted,hasAgent:!!agentData},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
       // #endregion
       setLoading(false);
     }

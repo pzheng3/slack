@@ -27,6 +27,7 @@ const UserContext = createContext<UserContextValue>({
 });
 
 const STORAGE_KEY = "slack_input_user_id";
+const STORAGE_USERNAME_KEY = "slack_input_username";
 
 /** Default avatar images for new users — randomly assigned on registration */
 const DEFAULT_AVATARS = [
@@ -49,10 +50,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount: check localStorage for existing userId
+  /**
+   * On mount: restore user identity from localStorage.
+   * If the stored userId still exists in the DB, load it.
+   * If the DB record was deleted (e.g. after a reseed) but we still have a
+   * stored username, automatically re-register with that username so the
+   * user never sees the modal again on the same device.
+   */
   useEffect(() => {
     async function loadUser() {
       const storedId = localStorage.getItem(STORAGE_KEY);
+      const storedUsername = localStorage.getItem(STORAGE_USERNAME_KEY);
+
       if (storedId) {
         const { data } = await supabase
           .from("users")
@@ -61,11 +70,48 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           .single();
         if (data) {
           setUser(data as User);
-        } else {
-          // Stored user no longer exists in DB
-          localStorage.removeItem(STORAGE_KEY);
+          setLoading(false);
+          return;
         }
       }
+
+      // DB record gone but we remember the username — auto re-register
+      if (storedUsername) {
+        // First check if someone else claimed this username
+        const { data: existing } = await supabase
+          .from("users")
+          .select("*")
+          .eq("username", storedUsername)
+          .single();
+
+        if (existing) {
+          // Username still exists (maybe same person, different id after reseed)
+          localStorage.setItem(STORAGE_KEY, existing.id);
+          setUser(existing as User);
+          setLoading(false);
+          return;
+        }
+
+        // Re-create the user with the remembered username
+        const avatar =
+          USER_AVATAR_MAP[storedUsername] ??
+          DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)];
+        const { data: newUser } = await supabase
+          .from("users")
+          .insert({ username: storedUsername, avatar_url: avatar, is_agent: false })
+          .select()
+          .single();
+
+        if (newUser) {
+          localStorage.setItem(STORAGE_KEY, newUser.id);
+          setUser(newUser as User);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Nothing to restore — clear stale keys
+      localStorage.removeItem(STORAGE_KEY);
       setLoading(false);
     }
     loadUser();
@@ -105,6 +151,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (error) return error.message;
 
       localStorage.setItem(STORAGE_KEY, data.id);
+      localStorage.setItem(STORAGE_USERNAME_KEY, trimmed);
       setUser(data as User);
       return null;
     },

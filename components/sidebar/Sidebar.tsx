@@ -1,6 +1,16 @@
 "use client";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 import { AgentList } from "./AgentList";
@@ -8,6 +18,7 @@ import { ChannelList } from "./ChannelList";
 import { DirectMessageList } from "./DirectMessageList";
 import { AppsPlaceholder } from "./AppsPlaceholder";
 import { useAgentSessions } from "@/lib/hooks/useAgentSessions";
+import { useChannels } from "@/lib/hooks/useChannels";
 
 interface SidebarProps {
   /** Whether the mobile sidebar is open */
@@ -39,6 +50,67 @@ export function Sidebar({
 }: SidebarProps) {
   const isResizing = useRef(false);
   const { sessions, createSession, deleteSession } = useAgentSessions();
+  const { channels, createChannel, deleteChannel } = useChannels();
+
+  // --- Add Channel dialog state ---
+  const [addChannelOpen, setAddChannelOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [addChannelError, setAddChannelError] = useState<string | null>(null);
+  const [addChannelSubmitting, setAddChannelSubmitting] = useState(false);
+
+  // --- Delete Channel confirmation dialog state ---
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  /**
+   * Open the "Add channel" dialog.
+   */
+  const handleAddChannelClick = useCallback(() => {
+    setNewChannelName("");
+    setAddChannelError(null);
+    setAddChannelOpen(true);
+  }, []);
+
+  /**
+   * Submit the new channel name.
+   */
+  const handleAddChannelSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setAddChannelError(null);
+      setAddChannelSubmitting(true);
+
+      const error = await createChannel(newChannelName);
+      if (error) {
+        setAddChannelError(error);
+        setAddChannelSubmitting(false);
+        return;
+      }
+
+      setAddChannelSubmitting(false);
+      setAddChannelOpen(false);
+      onClose();
+    },
+    [createChannel, newChannelName, onClose]
+  );
+
+  /**
+   * Open the delete confirmation dialog for a channel.
+   */
+  const handleDeleteChannelClick = useCallback((channelId: string, channelName: string) => {
+    setDeleteTarget({ id: channelId, name: channelName });
+  }, []);
+
+  /**
+   * Confirm channel deletion.
+   */
+  const handleDeleteChannelConfirm = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleteSubmitting(true);
+    await deleteChannel(deleteTarget.id);
+    setDeleteSubmitting(false);
+    setDeleteTarget(null);
+  }, [deleteChannel, deleteTarget]);
 
   /**
    * Start tracking pointer to resize the sidebar.
@@ -108,8 +180,12 @@ export function Sidebar({
           </SidebarSection>
 
           {/* Channels section */}
-          <SidebarSection label="Channels" hideAddButton>
-            <ChannelList onNavigate={onClose} />
+          <SidebarSection label="Channels" onAddClick={handleAddChannelClick}>
+            <ChannelList
+              onNavigate={onClose}
+              channels={channels}
+              onDeleteChannel={handleDeleteChannelClick}
+            />
           </SidebarSection>
 
           {/* Direct Messages section */}
@@ -137,6 +213,77 @@ export function Sidebar({
         />
       </aside>
 
+      {/* Add Channel dialog */}
+      <Dialog open={addChannelOpen} onOpenChange={setAddChannelOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create a channel</DialogTitle>
+            <DialogDescription>
+              Enter a name for your new channel. Names will be lowercased and
+              spaces replaced with hyphens.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddChannelSubmit} className="flex flex-col gap-4">
+            <div>
+              <Input
+                placeholder="e.g. project-updates"
+                value={newChannelName}
+                onChange={(e) => setNewChannelName(e.target.value)}
+                disabled={addChannelSubmitting}
+                autoFocus
+                maxLength={50}
+              />
+              {addChannelError && (
+                <p className="mt-1.5 text-sm text-destructive">{addChannelError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAddChannelOpen(false)}
+                disabled={addChannelSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={addChannelSubmitting || !newChannelName.trim()}>
+                {addChannelSubmitting ? "Creating..." : "Create Channel"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Channel confirmation dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete channel</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>#{deleteTarget?.name}</strong>? All messages
+              in this channel will be permanently removed. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteChannelConfirm}
+              disabled={deleteSubmitting}
+            >
+              {deleteSubmitting ? "Deleting..." : "Delete Channel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -243,7 +390,7 @@ function SidebarSection({
 function AddButton({ label, onClick }: { label: string; onClick?: () => void }) {
   const addLabels: Record<string, string> = {
     Agents: "Add agent",
-    Channels: "Add channels",
+    Channels: "Add channel",
     "Direct messages": "Add channels",
     Apps: "Add apps",
   };

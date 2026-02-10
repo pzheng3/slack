@@ -172,6 +172,14 @@ export const SlashCommandList = forwardRef<
     }
   }, [isSearching]);
 
+  /** Scroll the selected item into view when navigating via keyboard. */
+  useEffect(() => {
+    const container = listRef.current;
+    if (!container) return;
+    const child = container.children[selectedIndex] as HTMLElement | undefined;
+    child?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
+
   /* ---- actions ------------------------------------------------- */
 
   const selectItem = useCallback(
@@ -204,16 +212,14 @@ export const SlashCommandList = forwardRef<
       onKeyDown: ({ event }: { event: KeyboardEvent }) => {
         if (event.key === "ArrowUp") {
           event.preventDefault();
-          setSelectedIndex((prev) =>
-            prev <= 0 ? visibleItems.length - 1 : prev - 1
-          );
+          setSelectedIndex((prev) => Math.max(0, prev - 1));
           return true;
         }
 
         if (event.key === "ArrowDown") {
           event.preventDefault();
           setSelectedIndex((prev) =>
-            prev >= visibleItems.length - 1 ? 0 : prev + 1
+            Math.min(visibleItems.length - 1, prev + 1)
           );
           return true;
         }
