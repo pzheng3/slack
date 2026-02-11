@@ -174,6 +174,8 @@ export function createSlashSuggestion(
 
 /**
  * Position the popup element above the cursor rect.
+ * On narrow viewports the left edge is clamped so the menu
+ * stays fully visible with a small margin.
  */
 function updatePosition(
   popup: HTMLDivElement | null,
@@ -184,7 +186,16 @@ function updatePosition(
   const rect = typeof clientRect === "function" ? clientRect() : null;
   if (!rect) return;
 
-  popup.style.left = `${rect.left}px`;
+  const MARGIN = 16; // px from viewport edges
+  const popupWidth = popup.offsetWidth || 0;
+
+  // Clamp left so the popup doesn't overflow the right edge of the viewport
+  let left = rect.left;
+  if (left + popupWidth > window.innerWidth - MARGIN) {
+    left = Math.max(MARGIN, window.innerWidth - MARGIN - popupWidth);
+  }
+
+  popup.style.left = `${left}px`;
   popup.style.top = `${rect.top + window.scrollY - 8}px`;
   popup.style.transform = "translateY(-100%)";
 }

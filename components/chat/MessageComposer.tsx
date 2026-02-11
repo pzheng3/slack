@@ -33,6 +33,18 @@ interface MessageComposerProps {
   autoFocus?: boolean;
   /** Whether the formatting toolbar is visible by default (default: true) */
   defaultShowToolbar?: boolean;
+  /**
+   * Whether to show commands and skills in the `/` menu.
+   * When false, only app actions are shown (for channels and DMs).
+   * Defaults to false.
+   */
+  showAgentCommands?: boolean;
+  /**
+   * Whether to hide the video-clip button in the action bar.
+   * Useful for agent chats where video clips are not applicable.
+   * Defaults to false.
+   */
+  hideVideoButton?: boolean;
 }
 
 /**
@@ -46,6 +58,8 @@ export function MessageComposer({
   disabled = false,
   autoFocus = false,
   defaultShowToolbar = true,
+  showAgentCommands = false,
+  hideVideoButton = false,
 }: MessageComposerProps) {
   const router = useRouter();
   const { findOrCreateDM } = useDM();
@@ -69,7 +83,15 @@ export function MessageComposer({
   );
 
   /** All slash command items (commands, skills, apps) for the / menu. */
-  const { items: slashItems, recentIds: slashRecentIds, recordRecent: slashRecordRecent } = useSlashCommands();
+  const { items: allSlashItems, recentIds: slashRecentIds, recordRecent: slashRecordRecent } = useSlashCommands();
+  // In channels and DMs, only show app actions; commands/skills are agent-only.
+  const slashItems = useMemo(
+    () =>
+      showAgentCommands
+        ? allSlashItems
+        : allSlashItems.filter((i) => i.category === "app"),
+    [allSlashItems, showAgentCommands]
+  );
   const slashItemsRef = useRef(slashItems);
   slashItemsRef.current = slashItems;
   const slashRecentIdsRef = useRef(slashRecentIds);
@@ -152,8 +174,13 @@ export function MessageComposer({
   useEffect(() => {
     if (editor) {
       editor.setEditable(!disabled);
+      // When the editor becomes editable and autoFocus was requested,
+      // focus it — handles the case where autofocus fired while disabled.
+      if (!disabled && autoFocus) {
+        requestAnimationFrame(() => editor.commands.focus("end"));
+      }
     }
-  }, [editor, disabled]);
+  }, [editor, disabled, autoFocus]);
 
   /**
    * Send the current editor content as HTML and clear the editor.
@@ -287,7 +314,7 @@ export function MessageComposer({
           {/* Right actions */}
           <div className="flex items-center gap-1 py-1 pl-1 pr-0.5">
             <div className="flex items-center gap-1 py-0.5">
-              <ToolButton icon="video-clip" size={18} />
+              {!hideVideoButton && <ToolButton icon="video-clip" size={18} />}
               <ToolButton icon="audio-clip" size={18} />
             </div>
 
@@ -311,25 +338,82 @@ export function MessageComposer({
  * @param editor - The Tiptap editor instance
  */
 function FormattingToolbar({ editor }: { editor: Editor }) {
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const linkInputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Saved editor selection range so we can restore it after the user
+   * types a URL into the inline input (which moves focus away from
+   * the editor).
+   */
+  const savedSelectionRef = useRef<{ from: number; to: number } | null>(null);
+
   /**
    * Handle the link button — toggles link on/off.
    * If the selection is already a link, remove it.
-   * Otherwise prompt for a URL and apply it.
+   * Otherwise open the inline URL input, preserving the current selection.
    */
   const handleLink = () => {
     if (editor.isActive("link")) {
       editor.chain().focus().unsetLink().run();
       return;
     }
-    const url = window.prompt("Enter URL:");
-    if (url) {
-      editor.chain().focus().setLink({ href: url }).run();
+    // Save selection before focus moves to the URL input
+    savedSelectionRef.current = {
+      from: editor.state.selection.from,
+      to: editor.state.selection.to,
+    };
+    setLinkUrl("");
+    setShowLinkInput(true);
+    requestAnimationFrame(() => linkInputRef.current?.focus());
+  };
+
+  /**
+   * Apply the link to the saved selection (or insert the URL as
+   * linked text when nothing was selected), then close the input.
+   */
+  const applyLink = () => {
+    const url = linkUrl.trim();
+    if (!url) {
+      setShowLinkInput(false);
+      editor.commands.focus();
+      return;
     }
+
+    const sel = savedSelectionRef.current;
+    const hasSelection = sel && sel.from !== sel.to;
+
+    if (hasSelection) {
+      editor
+        .chain()
+        .focus()
+        .setTextSelection(sel)
+        .setLink({ href: url })
+        .run();
+    } else {
+      // No text was selected — insert the URL as linked text
+      editor
+        .chain()
+        .focus()
+        .insertContent(`<a href="${url}">${url}</a>`)
+        .run();
+    }
+
+    setShowLinkInput(false);
+    setLinkUrl("");
+  };
+
+  /** Close the link input without applying and refocus the editor. */
+  const cancelLink = () => {
+    setShowLinkInput(false);
+    setLinkUrl("");
+    editor.commands.focus();
   };
 
   return (
-    <div className="flex items-start rounded-t-lg bg-[var(--color-slack-toolbar-bg)] p-1">
-      <div className="flex items-center gap-1 py-px">
+    <div className="flex flex-col rounded-t-lg bg-[var(--color-slack-toolbar-bg)]">
+      <div className="flex items-center gap-1 p-1 py-px">
         <FormatButton
           icon="bold"
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -349,7 +433,7 @@ function FormattingToolbar({ editor }: { editor: Editor }) {
         <FormatButton
           icon="link"
           onClick={handleLink}
-          active={editor.isActive("link")}
+          active={editor.isActive("link") || showLinkInput}
         />
         <ToolbarDivider />
         <FormatButton
@@ -374,6 +458,49 @@ function FormattingToolbar({ editor }: { editor: Editor }) {
           active={editor.isActive("codeBlock")}
         />
       </div>
+
+      {/* Inline link URL input */}
+      {showLinkInput && (
+        <div className="flex items-center gap-2 border-t border-[var(--color-slack-border)] px-2 py-1.5">
+          <Image
+            src="/icons/link.svg"
+            alt="Link"
+            width={16}
+            height={16}
+            className="shrink-0 opacity-50"
+          />
+          <input
+            ref={linkInputRef}
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                applyLink();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancelLink();
+              }
+            }}
+            placeholder="Enter a URL…"
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--color-slack-text)] placeholder:text-[rgba(29,28,29,0.4)] outline-none"
+          />
+          <button
+            onClick={applyLink}
+            disabled={!linkUrl.trim()}
+            className="shrink-0 rounded px-2 py-0.5 text-[12px] font-medium text-white bg-[var(--color-slack-send-active)] disabled:opacity-40"
+          >
+            Apply
+          </button>
+          <button
+            onClick={cancelLink}
+            className="shrink-0 rounded px-2 py-0.5 text-[12px] font-medium text-[var(--color-slack-text)] hover:bg-[var(--color-slack-border-light)]"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -479,7 +606,7 @@ function AttachButton() {
 
       {/* Attach menu */}
       {open && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-[340px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+        <div className="absolute bottom-full left-0 z-50 mb-2 w-[calc(100vw-2rem)] max-w-[340px] overflow-hidden rounded-lg bg-white py-1 shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
           {ATTACH_MENU_ITEMS.map((item) => (
             <AttachMenuItem
               key={item.label}
@@ -515,7 +642,7 @@ function AttachMenuItem({
   return (
     <button
       onClick={onSelect}
-      className="flex w-full items-center gap-3 px-4 py-[7px] text-left text-[15px] text-[#1D1C1D] hover:bg-[#F0EDFC]"
+      className="flex w-full items-center gap-2 px-4 py-[5px] text-left text-[15px] text-[#1D1C1D] hover:bg-[#ebebeb]"
     >
       <Image
         src={`/icons/${icon}.svg`}

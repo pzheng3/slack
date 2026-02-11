@@ -2,9 +2,10 @@
 
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { TopBar } from "@/components/TopBar";
+import { NewMessageDialog } from "@/components/chat/NewMessageDialog";
 import { useUser } from "@/components/providers/UserProvider";
 import { Menu } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /** Minimum / maximum sidebar width in px */
 const SIDEBAR_MIN_WIDTH = 260;
@@ -23,6 +24,29 @@ export default function ChatLayout({
   const { user, loading } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [newMessageOpen, setNewMessageOpen] = useState(false);
+
+  /** Open the new-message dialog. */
+  const handleOpenNewMessage = useCallback(() => {
+    setNewMessageOpen(true);
+  }, []);
+
+  /** Close the new-message dialog. */
+  const handleCloseNewMessage = useCallback(() => {
+    setNewMessageOpen(false);
+  }, []);
+
+  /** Global Cmd+N shortcut to open the new-message dialog. */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
+        e.preventDefault();
+        setNewMessageOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Show nothing while loading or if no user (the modal handles that)
   if (loading || !user) {
@@ -47,6 +71,7 @@ export default function ChatLayout({
           onWidthChange={setSidebarWidth}
           minWidth={SIDEBAR_MIN_WIDTH}
           maxWidth={SIDEBAR_MAX_WIDTH}
+          onOpenNewMessage={handleOpenNewMessage}
         />
 
         {/* Main content area */}
@@ -65,6 +90,9 @@ export default function ChatLayout({
           <main className="flex min-h-0 flex-1 flex-col bg-white">{children}</main>
         </div>
       </div>
+
+      {/* New message dialog — command palette style */}
+      <NewMessageDialog open={newMessageOpen} onClose={handleCloseNewMessage} />
     </div>
   );
 }

@@ -2,12 +2,22 @@
 
 import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MessageList } from "@/components/chat/MessageList";
+import { AGENTS } from "@/lib/constants";
 import { useAgentChat } from "@/lib/hooks/useAgentChat";
+import { consumePendingPrompt } from "@/lib/pending-prompt";
 import Image from "next/image";
+import { useEffect, useMemo, useRef } from "react";
 
 /**
  * Agent chat page matching the Figma design.
  * Header shows agent avatar + name + chevron-down.
+ *
+ * Supports a "pending prompt" flow: when the user sends a message to a
+ * character agent from the "Create New" dialog, the prompt is stored in
+ * the pending-prompt store keyed by `"agent:{username}"`. This component
+ * consumes the prompt and feeds it through `useAgentChat.sendMessage()`,
+ * which inserts the message and triggers the AI response via streaming.
+ *
  * @param {{ agentUsername: string }} props
  */
 export default function AgentPageClient({
@@ -17,6 +27,73 @@ export default function AgentPageClient({
 }) {
   const { messages, loading, streaming, sendMessage, agent } =
     useAgentChat(agentUsername);
+
+  /**
+   * Character agents (e.g. Elon Musk, Steve Jobs) use a people-style
+   * composer — with the default toolbar, no agent slash commands, and
+   * the video button visible — to feel more like a DM conversation.
+   */
+  const isCharacterAgent = useMemo(
+    () => AGENTS.some((a) => a.username === agentUsername),
+    [agentUsername]
+  );
+
+  /* ---- Pending prompt from the "Create New" dialog ---- */
+
+  /** Stable ref so effects can call the latest sendMessage. */
+  const sendMessageRef = useRef(sendMessage);
+  sendMessageRef.current = sendMessage;
+
+  /** Prevents the pending prompt from being consumed more than once. */
+  const pendingProcessed = useRef(false);
+
+  /** Reset when switching to a different agent. */
+  useEffect(() => {
+    pendingProcessed.current = false;
+  }, [agentUsername]);
+
+  /**
+   * After the agent chat finishes loading, check for a pending prompt
+   * set by the "Create New" dialog and auto-send it.
+   *
+   * Uses `setTimeout(fn, 0)` so that React Strict Mode's synchronous
+   * unmount/remount cycle clears the timer from the first mount.
+   */
+  useEffect(() => {
+    if (loading || !agent || pendingProcessed.current) return;
+
+    const promptKey = `agent:${agentUsername}`;
+    const timer = setTimeout(() => {
+      const prompt = consumePendingPrompt(promptKey);
+      if (prompt) {
+        pendingProcessed.current = true;
+        sendMessageRef.current(prompt);
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [loading, agent, agentUsername]);
+
+  /**
+   * Listen for the `pending-prompt-ready` event for the case where the
+   * agent page is already mounted (same agent send from dialog).
+   */
+  useEffect(() => {
+    const promptKey = `agent:${agentUsername}`;
+
+    const handler = (e: Event) => {
+      const { conversationId } = (e as CustomEvent).detail;
+      if (conversationId !== promptKey) return;
+
+      const prompt = consumePendingPrompt(promptKey);
+      if (prompt) {
+        sendMessageRef.current(prompt);
+      }
+    };
+
+    window.addEventListener("pending-prompt-ready", handler);
+    return () => window.removeEventListener("pending-prompt-ready", handler);
+  }, [agentUsername]);
 
   return (
     <>
@@ -43,12 +120,14 @@ export default function AgentPageClient({
       {/* Messages */}
       <MessageList messages={messages} loading={loading} streaming={streaming} />
 
-      {/* Composer */}
+      {/* Composer — character agents get a people-style input field */}
       <MessageComposer
         onSend={sendMessage}
-
         disabled={loading || streaming}
-        defaultShowToolbar={false}
+        autoFocus
+        defaultShowToolbar={isCharacterAgent}
+        showAgentCommands={!isCharacterAgent}
+        hideVideoButton={!isCharacterAgent}
       />
     </>
   );

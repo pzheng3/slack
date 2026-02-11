@@ -134,19 +134,55 @@ export function useAgentSessions() {
   }, []);
 
   /**
+   * Listen for "agent-session-created" custom events dispatched by
+   * createSession so that OTHER hook instances (e.g. the sidebar) pick
+   * up newly created sessions immediately without a full refetch.
+   */
+  useEffect(() => {
+    const handleCreated = (e: Event) => {
+      const session = (e as CustomEvent).detail as AgentSession;
+      setSessions((prev) => {
+        // Guard against duplicates (the instance that called createSession
+        // already inserted via setSessions inside createSession itself).
+        if (prev.some((s) => s.id === session.id)) return prev;
+        return [session, ...prev];
+      });
+    };
+
+    window.addEventListener("agent-session-created", handleCreated);
+    return () =>
+      window.removeEventListener("agent-session-created", handleCreated);
+  }, []);
+
+  /**
+   * Options for {@link createSession}.
+   */
+  interface CreateSessionOptions {
+    /** Skip the default "Hey! How can I help you?" greeting message. */
+    skipGreeting?: boolean;
+    /** Skip the automatic `router.push` to the new session page. */
+    skipNavigation?: boolean;
+  }
+
+  /**
    * Create a new agent session.
    *
    * 1. Finds (or auto-creates) the generic "Slack Agent" agent user.
    * 2. Creates a conversation with type='agent' and the given name.
    * 3. Adds the current user + agent as conversation members.
-   * 4. Inserts the initial greeting message from the agent.
-   * 5. Updates local state and navigates to the new session page.
+   * 4. (Optional) Inserts the initial greeting message from the agent.
+   * 5. Updates local state.
+   * 6. (Optional) Navigates to the new session page.
    *
-   * @param sessionName - The name for the new session (the user's prompt)
+   * @param sessionName - The name for the new session
+   * @param options     - Optional flags to skip the greeting or navigation
    * @returns The new conversation ID, or null on failure
    */
   const createSession = useCallback(
-    async (sessionName: string): Promise<string | null> => {
+    async (
+      sessionName: string,
+      options?: CreateSessionOptions
+    ): Promise<string | null> => {
       if (!user) return null;
 
       // --- Resolve the generic agent ID ---
@@ -205,25 +241,32 @@ export function useAgentSessions() {
         return null;
       }
 
-      // --- Insert initial greeting message from the agent ---
-      await supabase.from("messages").insert({
-        conversation_id: conversation.id,
-        sender_id: agentId,
-        content: "Hey! How can I help you?",
-      });
+      // --- Insert initial greeting message from the agent (unless skipped) ---
+      if (!options?.skipGreeting) {
+        await supabase.from("messages").insert({
+          conversation_id: conversation.id,
+          sender_id: agentId,
+          content: "Hey! How can I help you?",
+        });
+      }
 
       // --- Update local state ---
-      setSessions((prev) => [
-        {
-          id: conversation.id,
-          name: sessionName,
-          created_at: conversation.created_at,
-        },
-        ...prev,
-      ]);
+      const newSession = {
+        id: conversation.id,
+        name: sessionName,
+        created_at: conversation.created_at,
+      };
+      setSessions((prev) => [newSession, ...prev]);
 
-      // --- Navigate to the new session ---
-      router.push(`/chat/agent/session/${conversation.id}`);
+      // --- Notify other hook instances (e.g. the sidebar) ---
+      window.dispatchEvent(
+        new CustomEvent("agent-session-created", { detail: newSession })
+      );
+
+      // --- Navigate to the new session (unless skipped) ---
+      if (!options?.skipNavigation) {
+        router.push(`/chat/agent/session/${conversation.id}`);
+      }
 
       return conversation.id;
     },

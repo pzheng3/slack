@@ -360,6 +360,28 @@ em-emoji-picker {
 }
 
 /* ======================================================
+   Subtle scrollbar — thin track, visible only on hover/scroll
+   ====================================================== */
+.subtle-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(29, 28, 29, 0.15) transparent;
+}
+/* WebKit (Chrome / Safari / Edge) */
+.subtle-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.subtle-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.subtle-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(29, 28, 29, 0.15);
+  border-radius: 3px;
+}
+.subtle-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(29, 28, 29, 0.3);
+}
+
+/* ======================================================
    Typing indicator – 3 bouncing dots
    ====================================================== */
 .typing-indicator {
@@ -370,8 +392,8 @@ em-emoji-picker {
 }
 
 .typing-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background-color: var(--color-slack-text-secondary);
   animation: typing-bounce 1.4s ease-in-out infinite both;

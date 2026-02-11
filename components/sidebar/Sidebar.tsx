@@ -33,6 +33,8 @@ interface SidebarProps {
   minWidth: number;
   /** Maximum sidebar width in px */
   maxWidth: number;
+  /** Callback to open the new-message dialog */
+  onOpenNewMessage?: () => void;
 }
 
 /**
@@ -47,6 +49,7 @@ export function Sidebar({
   onWidthChange,
   minWidth,
   maxWidth,
+  onOpenNewMessage,
 }: SidebarProps) {
   const isResizing = useRef(false);
   const { sessions, createSession, deleteSession } = useAgentSessions();
@@ -167,7 +170,7 @@ export function Sidebar({
         `}
       >
         {/* Workspace header */}
-        <WorkspaceHeader />
+        <WorkspaceHeader onNewMessage={onOpenNewMessage} />
 
         {/* Scrollable sections */}
         <ScrollArea className="flex-1 overflow-hidden">
@@ -290,8 +293,9 @@ export function Sidebar({
 
 /**
  * Workspace header — "Acme" with compose button.
+ * @param onNewMessage - Called when the "new message" button is clicked
  */
-function WorkspaceHeader() {
+function WorkspaceHeader({ onNewMessage }: { onNewMessage?: () => void }) {
   return (
     <div className="flex h-[50px] items-center justify-between border-b border-[var(--color-slack-sidebar-border)] px-4">
       <button className="flex min-w-0 items-center rounded-[6px] px-2 py-1">
@@ -299,7 +303,10 @@ function WorkspaceHeader() {
           Acme
         </span>
       </button>
-      <button className="shrink-0 rounded-[4px] p-[3px] opacity-80 hover:opacity-100">
+      <button
+        className="shrink-0 rounded-[4px] p-[3px] opacity-80 hover:opacity-100"
+        onClick={onNewMessage}
+      >
         <Image
           src="/icons/new-message.svg"
           alt="New message"

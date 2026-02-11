@@ -64,17 +64,19 @@ export function useDM() {
             .in("conversation_id", myConvIds);
 
           if (theirConvs && theirConvs.length > 0) {
-            // Check which of these are DM conversations
+            // Check which of these are DM conversations.
+            // Use ORDER BY + limit instead of .single() to avoid an error
+            // when 0 rows are found (single() throws on 0 or 2+ rows).
             const sharedIds = theirConvs.map((c) => c.conversation_id);
-            const { data: dmConv } = await supabase
+            const { data: dmConvs } = await supabase
               .from("conversations")
               .select("id")
               .in("id", sharedIds)
               .eq("type", "dm")
-              .limit(1)
-              .single();
+              .order("created_at", { ascending: true })
+              .limit(1);
 
-            if (dmConv) return dmConv.id;
+            if (dmConvs && dmConvs.length > 0) return dmConvs[0].id;
           }
         }
       }

@@ -81,10 +81,31 @@ export const SlashCommandList = forwardRef<
 ) {
   const [activeTab, setActiveTab] = useState<TabKey>("recent");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  /** Whether the currently hovered row's subtitle text is truncated. */
-  const [hoveredTruncated, setHoveredTruncated] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  /** Refs to each row's subtitle element for truncation detection. */
+  const subtitleRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  /** Whether the Cmd (Meta) key is currently held down. */
+  const [cmdHeld, setCmdHeld] = useState(false);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "Meta") setCmdHeld(true);
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.key === "Meta") setCmdHeld(false);
+    };
+    const blur = () => setCmdHeld(false);
+
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
+    };
+  }, []);
 
   const isSearching = query.length > 0;
 
@@ -154,22 +175,22 @@ export const SlashCommandList = forwardRef<
     return source.slice(0, 20);
   }, [activeTab, isSearching, items, filtered, filteredByCategory, byCategory, recentIds]);
 
-  /** Tab list — swap "Recent" label for "Results" when searching. */
+  /** Tab list — hide category tabs that have no items, swap "Recent" for "Results" when searching. */
   const tabList = useMemo(
     () =>
-      TABS.map((t) =>
-        t.key === "recent" && isSearching
-          ? { ...t, label: "All results" }
-          : t
-      ),
-    [isSearching]
+      TABS.filter((t) => t.key === "recent" || byCategory[t.key]?.length > 0)
+        .map((t) =>
+          t.key === "recent" && isSearching
+            ? { ...t, label: "All results" }
+            : t
+        ),
+    [isSearching, byCategory]
   );
 
   /* ---- reset selection when list or tab changes ---------------- */
 
   useEffect(() => {
     setSelectedIndex(0);
-    setHoveredIndex(null);
   }, [visibleItems, activeTab]);
 
   /** Reset to Recent tab when query clears. */
@@ -208,12 +229,13 @@ export const SlashCommandList = forwardRef<
   const switchTab = useCallback(
     (direction: -1 | 1) => {
       setActiveTab((current) => {
-        const idx = TABS.findIndex((t) => t.key === current);
-        const next = (idx + direction + TABS.length) % TABS.length;
-        return TABS[next].key;
+        const idx = tabList.findIndex((t) => t.key === current);
+        if (idx === -1) return tabList[0]?.key ?? "recent";
+        const next = (idx + direction + tabList.length) % tabList.length;
+        return tabList[next].key;
       });
     },
-    []
+    [tabList]
   );
 
   /* ---- imperative keyboard handler ----------------------------- */
@@ -248,6 +270,20 @@ export const SlashCommandList = forwardRef<
           return true;
         }
 
+        /* Cmd+1 … Cmd+9 selects the corresponding item directly. */
+        if (
+          event.metaKey &&
+          event.key >= "1" &&
+          event.key <= "9"
+        ) {
+          const idx = parseInt(event.key, 10) - 1;
+          if (idx < visibleItems.length) {
+            event.preventDefault();
+            selectItem(idx);
+            return true;
+          }
+        }
+
         if (event.key === "Enter") {
           event.preventDefault();
           selectItem(selectedIndex);
@@ -268,19 +304,24 @@ export const SlashCommandList = forwardRef<
 
   if (items.length === 0) return null;
 
-  /** The item whose description tooltip is shown. */
-  const tooltipItem =
-    hoveredIndex !== null ? visibleItems[hoveredIndex] : null;
+  /** The currently selected item (via keyboard or mouse). */
+  const selectedItem = visibleItems[selectedIndex] ?? null;
+
+  /** Check if the selected row's subtitle is truncated. */
+  const selectedSubtitleEl = subtitleRefs.current.get(selectedIndex);
+  const isSelectedTruncated = selectedSubtitleEl
+    ? selectedSubtitleEl.scrollWidth > selectedSubtitleEl.clientWidth
+    : false;
 
   return (
-    <div className="relative w-[575px] rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
+    <div className="relative w-[calc(100vw-2rem)] max-w-[575px] rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
       {/* Tab bar */}
-      <div className="flex border-b border-[rgba(29,28,29,0.13)] px-2 pt-2">
+      <div className="flex overflow-x-auto border-b border-[rgba(29,28,29,0.13)] px-2 pt-2">
         {tabList.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-3 pb-2 border-b-2 text-[13px] font-semibold transition-colors ${
+            className={`shrink-0 px-3 pb-2 border-b-2 text-[13px] font-semibold transition-colors ${
               activeTab === tab.key
                 ? "border-[#1264a3] text-[#1264a3]"
                 : "border-transparent text-[rgba(29,28,29,0.7)] hover:text-[#1d1c1d]"
@@ -304,30 +345,27 @@ export const SlashCommandList = forwardRef<
               item={item}
               selected={index === selectedIndex}
               onSelect={() => selectItem(index)}
-              onMouseEnter={(truncated) => {
-                setSelectedIndex(index);
-                setHoveredIndex(index);
-                setHoveredTruncated(truncated);
+              onMouseEnter={() => setSelectedIndex(index)}
+              subtitleRef={(el) => {
+                if (el) subtitleRefs.current.set(index, el);
+                else subtitleRefs.current.delete(index);
               }}
-              onMouseLeave={() => {
-                setHoveredIndex(null);
-                setHoveredTruncated(false);
-              }}
+              shortcutNumber={cmdHeld && index < 9 ? index + 1 : undefined}
             />
           ))
         )}
       </div>
 
-      {/* Hover description tooltip — only when subtitle is truncated */}
-      {hoveredIndex !== null &&
-        hoveredTruncated &&
-        tooltipItem &&
-        (tooltipItem.category === "command" ||
-          tooltipItem.category === "skill") &&
-        tooltipItem.description && (
+      {/* Description tooltip — only when subtitle is truncated */}
+      {isSelectedTruncated &&
+        selectedItem &&
+        (selectedItem.category === "command" ||
+          selectedItem.category === "skill") &&
+        selectedItem.description && (
           <DescriptionTooltip
-            description={tooltipItem.description}
-            itemIndex={hoveredIndex}
+            description={selectedItem.description}
+            listRef={listRef}
+            selectedIndex={selectedIndex}
           />
         )}
     </div>
@@ -355,17 +393,18 @@ function SlashCommandRow({
   selected,
   onSelect,
   onMouseEnter,
-  onMouseLeave,
+  subtitleRef,
+  shortcutNumber,
 }: {
   item: SlashCommandItem;
   selected: boolean;
   onSelect: () => void;
-  /** Called with `true` when the subtitle is truncated, `false` otherwise. */
-  onMouseEnter: (truncated: boolean) => void;
-  onMouseLeave: () => void;
+  onMouseEnter: () => void;
+  /** Callback ref to register the subtitle element for truncation detection. */
+  subtitleRef: (el: HTMLDivElement | null) => void;
+  /** When Cmd is held, the 1-9 shortcut number to show. */
+  shortcutNumber?: number;
 }) {
-  const subtitleRef = useRef<HTMLDivElement>(null);
-
   /** Strip leading "/" from command/skill labels for display. */
   const displayLabel =
     item.category !== "app" && item.label.startsWith("/")
@@ -378,12 +417,7 @@ function SlashCommandRow({
         selected ? "bg-[#ebebeb]" : ""
       }`}
       onClick={onSelect}
-      onMouseEnter={() => {
-        const el = subtitleRef.current;
-        const truncated = el ? el.scrollWidth > el.clientWidth : false;
-        onMouseEnter(truncated);
-      }}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={onMouseEnter}
     >
       {/* Icon / Avatar */}
       <div className="flex shrink-0 items-center px-2">
@@ -411,6 +445,13 @@ function SlashCommandRow({
           )}
         </div>
       </div>
+
+      {/* Cmd+number shortcut hint */}
+      {shortcutNumber !== undefined && (
+        <span className="ml-auto shrink-0 pr-3 text-[13px] text-[rgba(29,28,29,0.5)]">
+          ⌘{shortcutNumber}
+        </span>
+      )}
     </button>
   );
 }
@@ -503,61 +544,77 @@ function AppSubtitle({ item }: { item: SlashCommandItem }) {
 
 /**
  * Floating tooltip that shows the full description text
- * when hovering over a command or skill row.
- * Positioned to the right of the dropdown, vertically aligned
- * to the hovered item index.
+ * when hovering/selecting a command or skill row.
+ * Positioned to the right of the dropdown, top-aligned with
+ * the selected list item by measuring the actual row element.
  *
  * @param description - The description text to display
- * @param itemIndex - Index of the hovered item (used for vertical positioning)
+ * @param listRef - Ref to the scrollable list container
+ * @param selectedIndex - Index of the selected row
  */
 function DescriptionTooltip({
   description,
-  itemIndex,
+  listRef,
+  selectedIndex,
 }: {
   description: string;
-  itemIndex: number;
+  listRef: React.RefObject<HTMLDivElement | null>;
+  selectedIndex: number;
 }) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const VIEWPORT_MARGIN = 8;
 
-  // Each row is ~42px. Tab bar ~37px, list padding-top 8px.
-  const idealTop = 37 + 8 + itemIndex * 42;
-
-  /**
-   * After paint, check if the tooltip overflows the viewport
-   * and nudge it back inside with a margin.
-   */
   useEffect(() => {
-    const el = tooltipRef.current;
-    if (!el) return;
+    const tooltip = tooltipRef.current;
+    const list = listRef.current;
+    if (!tooltip || !list) return;
 
-    const rect = el.getBoundingClientRect();
+    // Find the selected row element inside the list
+    const row = list.children[selectedIndex] as HTMLElement | undefined;
+    if (!row) return;
 
-    // Clamp bottom edge
-    if (rect.bottom > window.innerHeight - VIEWPORT_MARGIN) {
-      const overflow = rect.bottom - (window.innerHeight - VIEWPORT_MARGIN);
-      el.style.transform = `translateY(${idealTop - overflow}px)`;
+    // Get the dropdown container (tooltip's offsetParent with position:relative)
+    const container = tooltip.offsetParent as HTMLElement | null;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+
+    // Top-align the tooltip with the row, relative to the container
+    let top = rowRect.top - containerRect.top;
+
+    // Apply initial position
+    tooltip.style.top = `${top}px`;
+    tooltip.style.transform = "none";
+
+    // Now clamp within viewport
+    const tooltipRect = tooltip.getBoundingClientRect();
+
+    if (tooltipRect.bottom > window.innerHeight - VIEWPORT_MARGIN) {
+      const overflow = tooltipRect.bottom - (window.innerHeight - VIEWPORT_MARGIN);
+      top -= overflow;
+      tooltip.style.top = `${top}px`;
     }
 
-    // Clamp top edge
-    if (rect.top < VIEWPORT_MARGIN) {
-      el.style.transform = `translateY(${idealTop + (VIEWPORT_MARGIN - rect.top)}px)`;
+    if (tooltipRect.top < VIEWPORT_MARGIN) {
+      top += VIEWPORT_MARGIN - tooltipRect.top;
+      tooltip.style.top = `${top}px`;
     }
 
-    // Clamp right edge
-    if (rect.right > window.innerWidth - VIEWPORT_MARGIN) {
-      el.style.left = "auto";
-      el.style.right = "100%";
-      el.style.marginLeft = "0";
-      el.style.marginRight = "8px";
+    // Clamp right edge — flip to left side if needed
+    if (tooltipRect.right > window.innerWidth - VIEWPORT_MARGIN) {
+      tooltip.style.left = "auto";
+      tooltip.style.right = "100%";
+      tooltip.style.marginLeft = "0";
+      tooltip.style.marginRight = "8px";
     }
-  }, [idealTop]);
+  }, [listRef, selectedIndex]);
 
   return (
     <div
       ref={tooltipRef}
-      className="absolute left-full top-0 z-50 ml-2 w-[220px]"
-      style={{ transform: `translateY(${idealTop}px)` }}
+      className="absolute left-full z-50 ml-2 w-[220px]"
+      style={{ top: 0 }}
     >
       <div className="rounded-md bg-[#1d1c1d] px-3 py-2 text-[13px] leading-[18px] text-white shadow-lg">
         {description}

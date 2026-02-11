@@ -5,8 +5,9 @@ import { MessageList } from "@/components/chat/MessageList";
 import { useAgentAutoReply } from "@/lib/hooks/useAgentAutoReply";
 import { useChannelConversation } from "@/lib/hooks/useConversation";
 import { useMessages } from "@/lib/hooks/useMessages";
+import { consumePendingPrompt } from "@/lib/pending-prompt";
 import Image from "next/image";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /**
  * Channel chat page matching the Figma design.
@@ -15,6 +16,11 @@ import { useCallback } from "react";
  * Integrates with `useAgentAutoReply` so that AI character agents
  * (Elon Musk, Steve Jobs) respond when @mentioned or when the user
  * posts in one of the agent's related channels.
+ *
+ * Supports a "pending prompt" flow: when the user sends a message from
+ * the "Create New" dialog, the prompt is stored in a module-level store
+ * and consumed here via `handleSend()`, which both inserts the message
+ * (via `useMessages`) and triggers agent auto-replies.
  *
  * @param {{ name: string }} props
  */
@@ -40,6 +46,62 @@ export default function ChannelPageClient({ name }: { name: string }) {
     },
     [sendMessage, triggerAutoReply]
   );
+
+  /* ---- Pending prompt from the "Create New" dialog ---- */
+
+  /** Stable ref so effects can call the latest handleSend. */
+  const handleSendRef = useRef(handleSend);
+  handleSendRef.current = handleSend;
+
+  /** Prevents the pending prompt from being consumed more than once. */
+  const pendingProcessed = useRef(false);
+
+  /** Reset when switching to a different channel. */
+  useEffect(() => {
+    pendingProcessed.current = false;
+  }, [name]);
+
+  /**
+   * After the conversation resolves, check for a pending prompt set by
+   * the "Create New" dialog and auto-send it through handleSend.
+   *
+   * Uses `setTimeout(fn, 0)` so that React Strict Mode's synchronous
+   * unmount/remount cycle clears the timer from the first mount.
+   */
+  useEffect(() => {
+    if (convLoading || !conversation || pendingProcessed.current) return;
+
+    const timer = setTimeout(() => {
+      const prompt = consumePendingPrompt(conversation.id);
+      if (prompt) {
+        pendingProcessed.current = true;
+        handleSendRef.current(prompt);
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [convLoading, conversation]);
+
+  /**
+   * Listen for the `pending-prompt-ready` event for the case where the
+   * channel page is already mounted (same channel send from dialog).
+   */
+  useEffect(() => {
+    if (!conversation) return;
+
+    const handler = (e: Event) => {
+      const { conversationId } = (e as CustomEvent).detail;
+      if (conversationId !== conversation.id) return;
+
+      const prompt = consumePendingPrompt(conversation.id);
+      if (prompt) {
+        handleSendRef.current(prompt);
+      }
+    };
+
+    window.addEventListener("pending-prompt-ready", handler);
+    return () => window.removeEventListener("pending-prompt-ready", handler);
+  }, [conversation]);
 
   return (
     <>
@@ -75,6 +137,7 @@ export default function ChannelPageClient({ name }: { name: string }) {
       <MessageComposer
         onSend={handleSend}
         disabled={!conversation}
+        autoFocus
       />
     </>
   );

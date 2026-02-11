@@ -41,21 +41,21 @@ const APP_ITEMS: MentionItem[] = [
     label: "Cursor",
     avatar_url: "/images/Cursor logo.png",
     category: "app",
-    timestamp: new Date().toISOString(),
+    timestamp: "2000-01-01T00:00:00.000Z",
   },
   {
     id: "app-notion",
     label: "Notion",
     avatar_url: "/images/Notion logo.png",
     category: "app",
-    timestamp: new Date().toISOString(),
+    timestamp: "2000-01-01T00:00:00.000Z",
   },
   {
     id: "app-figma",
     label: "Figma",
     avatar_url: "/images/Figma logo.png",
     category: "app",
-    timestamp: new Date().toISOString(),
+    timestamp: "2000-01-01T00:00:00.000Z",
   },
 ];
 

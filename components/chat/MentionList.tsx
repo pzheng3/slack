@@ -95,6 +95,28 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
     const [selectedIndex, setSelectedIndex] = useState(0);
     const listRef = useRef<HTMLDivElement>(null);
 
+    /** Whether the Cmd (Meta) key is currently held down. */
+    const [cmdHeld, setCmdHeld] = useState(false);
+
+    useEffect(() => {
+      const down = (e: KeyboardEvent) => {
+        if (e.key === "Meta") setCmdHeld(true);
+      };
+      const up = (e: KeyboardEvent) => {
+        if (e.key === "Meta") setCmdHeld(false);
+      };
+      const blur = () => setCmdHeld(false);
+
+      window.addEventListener("keydown", down);
+      window.addEventListener("keyup", up);
+      window.addEventListener("blur", blur);
+      return () => {
+        window.removeEventListener("keydown", down);
+        window.removeEventListener("keyup", up);
+        window.removeEventListener("blur", blur);
+      };
+    }, []);
+
     const isSearching = query.length > 0;
 
     /* ---- derived data -------------------------------------------- */
@@ -290,6 +312,20 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
             return true;
           }
 
+          /* Cmd+1 … Cmd+9 selects the corresponding item directly. */
+          if (
+            event.metaKey &&
+            event.key >= "1" &&
+            event.key <= "9"
+          ) {
+            const idx = parseInt(event.key, 10) - 1;
+            if (idx < visibleItems.length) {
+              event.preventDefault();
+              selectItem(idx);
+              return true;
+            }
+          }
+
           if (event.key === "Enter") {
             event.preventDefault();
             selectItem(selectedIndex);
@@ -311,14 +347,14 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
     if (items.length === 0) return null;
 
     return (
-      <div className="w-[405px] rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
+      <div className="w-[calc(100vw-2rem)] max-w-[405px] rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
         {/* Tab bar */}
-        <div className="flex border-b border-[rgba(29,28,29,0.13)] px-2 pt-2">
+        <div className="flex overflow-x-auto border-b border-[rgba(29,28,29,0.13)] px-2 pt-2">
           {tabList.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-3 pb-2 border-b-2 text-[13px] font-semibold transition-colors ${
+              className={`shrink-0 px-3 pb-2 border-b-2 text-[13px] font-semibold transition-colors ${
                 activeTab === tab.key
                   ? "border-[#1264a3] text-[#1264a3]"
                   : "border-transparent text-[rgba(29,28,29,0.7)] hover:text-[#1d1c1d]"
@@ -353,12 +389,16 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
                   {item.label}
                 </span>
 
-                {/* Category badge in Recent / Results tab */}
-                {activeTab === "recent" && (
+                {/* Right-side hint: Cmd+number shortcut or category badge */}
+                {cmdHeld && index < 9 ? (
+                  <span className="ml-auto shrink-0 text-[13px] text-[rgba(29,28,29,0.5)]">
+                    ⌘{index + 1}
+                  </span>
+                ) : activeTab === "recent" ? (
                   <span className="ml-auto shrink-0 text-[13px] text-[rgba(29,28,29,0.5)]">
                     {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                   </span>
-                )}
+                ) : null}
               </button>
             ))
           )}

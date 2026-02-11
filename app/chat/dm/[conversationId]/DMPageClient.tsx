@@ -6,13 +6,19 @@ import { useSupabase } from "@/components/providers/SupabaseProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import { useConversationById } from "@/lib/hooks/useConversation";
 import { useMessages } from "@/lib/hooks/useMessages";
+import { consumePendingPrompt } from "@/lib/pending-prompt";
 import type { User } from "@/lib/types";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Direct message chat page matching the Figma design.
  * Header shows avatar + name, with the Slack header shadow.
+ *
+ * Supports a "pending prompt" flow: when the user sends a DM from the
+ * "Create New" dialog, the prompt is stored in a module-level store and
+ * consumed here via `sendMessage()` from `useMessages`.
+ *
  * @param {{ conversationId: string }} props
  */
 export default function DMPageClient({
@@ -73,6 +79,62 @@ export default function DMPageClient({
     fetchOtherUser();
   }, [supabase, user, conversationId]);
 
+  /* ---- Pending prompt from the "Create New" dialog ---- */
+
+  /** Stable ref so effects can call the latest sendMessage. */
+  const sendMessageRef = useRef(sendMessage);
+  sendMessageRef.current = sendMessage;
+
+  /** Prevents the pending prompt from being consumed more than once. */
+  const pendingProcessed = useRef(false);
+
+  /** Reset when switching to a different DM. */
+  useEffect(() => {
+    pendingProcessed.current = false;
+  }, [conversationId]);
+
+  /**
+   * After the conversation resolves, check for a pending prompt set by
+   * the "Create New" dialog and auto-send it through sendMessage.
+   *
+   * Uses `setTimeout(fn, 0)` so that React Strict Mode's synchronous
+   * unmount/remount cycle clears the timer from the first mount.
+   */
+  useEffect(() => {
+    if (convLoading || !conversation || pendingProcessed.current) return;
+
+    const timer = setTimeout(() => {
+      const prompt = consumePendingPrompt(conversation.id);
+      if (prompt) {
+        pendingProcessed.current = true;
+        sendMessageRef.current(prompt);
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [convLoading, conversation]);
+
+  /**
+   * Listen for the `pending-prompt-ready` event for the case where the
+   * DM page is already mounted (same DM send from dialog).
+   */
+  useEffect(() => {
+    if (!conversation) return;
+
+    const handler = (e: Event) => {
+      const { conversationId: cid } = (e as CustomEvent).detail;
+      if (cid !== conversation.id) return;
+
+      const prompt = consumePendingPrompt(conversation.id);
+      if (prompt) {
+        sendMessageRef.current(prompt);
+      }
+    };
+
+    window.addEventListener("pending-prompt-ready", handler);
+    return () => window.removeEventListener("pending-prompt-ready", handler);
+  }, [conversation]);
+
   const displayName = otherUser
     ? isSelfDM
       ? `${otherUser.username} (you)`
@@ -120,8 +182,8 @@ export default function DMPageClient({
       {/* Composer */}
       <MessageComposer
         onSend={sendMessage}
-
         disabled={!conversation}
+        autoFocus
       />
     </>
   );

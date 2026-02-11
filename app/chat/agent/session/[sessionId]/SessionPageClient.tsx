@@ -3,11 +3,21 @@
 import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MessageList } from "@/components/chat/MessageList";
 import { useSessionChat } from "@/lib/hooks/useSessionChat";
+import { consumePendingPrompt } from "@/lib/pending-prompt";
 import Image from "next/image";
+import { useEffect, useRef } from "react";
 
 /**
  * Session-based agent chat page.
  * Header shows the AI Assistant avatar + session name.
+ *
+ * Supports a "pending prompt" flow: when the user sends a message from the
+ * "Create New" dialog, the prompt is stored in a module-level store
+ * (see {@link lib/pending-prompt}) instead of being inserted directly into
+ * the DB. This component consumes the prompt and feeds it through
+ * `sendMessage()`, which both persists the message and triggers the AI
+ * response via streaming.
+ *
  * @param {{ sessionId: string }} props
  */
 export default function SessionPageClient({
@@ -19,6 +29,62 @@ export default function SessionPageClient({
     useSessionChat(sessionId);
 
   const sessionName = conversation?.name || "Agent Session";
+
+  /* ---- Stable ref so effects can call the latest sendMessage ---- */
+  const sendMessageRef = useRef(sendMessage);
+  sendMessageRef.current = sendMessage;
+
+  /** Prevents the pending prompt from being consumed more than once. */
+  const pendingProcessed = useRef(false);
+
+  /** Reset when switching to a different session. */
+  useEffect(() => {
+    pendingProcessed.current = false;
+  }, [sessionId]);
+
+  /**
+   * On mount (or when the session finishes loading), check for a pending
+   * prompt that was set by the "Create New" dialog and auto-send it.
+   *
+   * Uses `setTimeout(fn, 0)` so that React Strict Mode's synchronous
+   * unmount/remount cycle clears the timer from the first mount. This
+   * prevents the prompt from being consumed by a dead component instance
+   * whose state updates would be lost on the subsequent remount.
+   */
+  useEffect(() => {
+    if (loading || !conversation || !agent || pendingProcessed.current) return;
+
+    const timer = setTimeout(() => {
+      const prompt = consumePendingPrompt(sessionId);
+      if (prompt) {
+        pendingProcessed.current = true;
+        sendMessageRef.current(prompt);
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [loading, conversation, agent, sessionId]);
+
+  /**
+   * Listen for the `pending-prompt-ready` custom event dispatched by
+   * `setPendingPrompt`. This handles the case where the session page is
+   * already mounted (e.g. the user sends to the *same* existing session
+   * from the dialog without navigating away first).
+   */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { conversationId } = (e as CustomEvent).detail;
+      if (conversationId !== sessionId) return;
+
+      const prompt = consumePendingPrompt(sessionId);
+      if (prompt) {
+        sendMessageRef.current(prompt);
+      }
+    };
+
+    window.addEventListener("pending-prompt-ready", handler);
+    return () => window.removeEventListener("pending-prompt-ready", handler);
+  }, [sessionId]);
 
   return (
     <>
@@ -48,10 +114,11 @@ export default function SessionPageClient({
       {/* Composer — auto-focused so the user can type immediately */}
       <MessageComposer
         onSend={sendMessage}
-
         disabled={loading || streaming}
         autoFocus
         defaultShowToolbar={false}
+        showAgentCommands
+        hideVideoButton
       />
     </>
   );
