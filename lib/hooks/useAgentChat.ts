@@ -20,7 +20,7 @@ interface AgentChatCacheEntry {
 }
 
 /** Module-level cache: agentUsername → cached init data */
-const agentChatCache = new Map<string, AgentChatCacheEntry>();
+export const agentChatCache = new Map<string, AgentChatCacheEntry>();
 
 /**
  * Hook for managing an agent chat conversation.

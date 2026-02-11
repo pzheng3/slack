@@ -21,7 +21,7 @@ interface SessionChatCacheEntry {
 }
 
 /** Module-level cache: sessionId → cached init data */
-const sessionChatCache = new Map<string, SessionChatCacheEntry>();
+export const sessionChatCache = new Map<string, SessionChatCacheEntry>();
 
 /**
  * Hook for managing a session-based agent chat conversation.

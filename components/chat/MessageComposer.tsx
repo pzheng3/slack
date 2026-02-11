@@ -14,6 +14,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { useMentionSuggestions } from "@/lib/hooks/useMentionSuggestions";
 import { createMentionSuggestion } from "@/lib/mention-suggestion";
@@ -122,7 +129,7 @@ export function MessageComposer({
         blockquote: false,
       }),
       Link.configure({
-        openOnClick: false,
+        openOnClick: true,
         HTMLAttributes: {
           rel: "noopener noreferrer",
           target: "_blank",
@@ -338,76 +345,84 @@ export function MessageComposer({
  * @param editor - The Tiptap editor instance
  */
 function FormattingToolbar({ editor }: { editor: Editor }) {
-  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
-  const linkInputRef = useRef<HTMLInputElement>(null);
+  const [linkText, setLinkText] = useState("");
+  const linkUrlInputRef = useRef<HTMLInputElement>(null);
 
   /**
    * Saved editor selection range so we can restore it after the user
-   * types a URL into the inline input (which moves focus away from
-   * the editor).
+   * interacts with the dialog (which moves focus away from the editor).
    */
   const savedSelectionRef = useRef<{ from: number; to: number } | null>(null);
 
   /**
    * Handle the link button — toggles link on/off.
    * If the selection is already a link, remove it.
-   * Otherwise open the inline URL input, preserving the current selection.
+   * Otherwise open the Add link dialog, preserving the current selection.
    */
   const handleLink = () => {
     if (editor.isActive("link")) {
       editor.chain().focus().unsetLink().run();
       return;
     }
-    // Save selection before focus moves to the URL input
-    savedSelectionRef.current = {
-      from: editor.state.selection.from,
-      to: editor.state.selection.to,
-    };
+    // Save selection before focus moves to the dialog
+    const { from, to } = editor.state.selection;
+    savedSelectionRef.current = { from, to };
+
+    // Pre-populate text field with selected text (if any)
+    const selectedText = from !== to ? editor.state.doc.textBetween(from, to) : "";
+    setLinkText(selectedText);
     setLinkUrl("");
-    setShowLinkInput(true);
-    requestAnimationFrame(() => linkInputRef.current?.focus());
+    setShowLinkDialog(true);
   };
 
   /**
-   * Apply the link to the saved selection (or insert the URL as
-   * linked text when nothing was selected), then close the input.
+   * Apply the link using the dialog inputs.
+   * If text was originally selected, replace it with the new text + link.
+   * If no text was selected, insert new linked text at the cursor.
    */
   const applyLink = () => {
-    const url = linkUrl.trim();
-    if (!url) {
-      setShowLinkInput(false);
-      editor.commands.focus();
-      return;
+    let url = linkUrl.trim();
+    if (!url) return;
+
+    // Auto-prepend https:// if the user omitted the protocol
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
     }
 
+    const text = linkText.trim() || url;
     const sel = savedSelectionRef.current;
     const hasSelection = sel && sel.from !== sel.to;
 
     if (hasSelection) {
+      // Replace the selected text with the (possibly edited) text + link
       editor
         .chain()
         .focus()
         .setTextSelection(sel)
-        .setLink({ href: url })
+        .deleteSelection()
+        .insertContent(`<a href="${url}">${text}</a>`)
         .run();
     } else {
-      // No text was selected — insert the URL as linked text
+      // No text was selected — insert the text as a link at the cursor
       editor
         .chain()
         .focus()
-        .insertContent(`<a href="${url}">${url}</a>`)
+        .insertContent(`<a href="${url}">${text}</a>`)
         .run();
     }
 
-    setShowLinkInput(false);
+    setShowLinkDialog(false);
     setLinkUrl("");
+    setLinkText("");
   };
 
-  /** Close the link input without applying and refocus the editor. */
+  /** Close the dialog without applying and refocus the editor. */
   const cancelLink = () => {
-    setShowLinkInput(false);
+    setShowLinkDialog(false);
     setLinkUrl("");
+    setLinkText("");
     editor.commands.focus();
   };
 
@@ -433,7 +448,7 @@ function FormattingToolbar({ editor }: { editor: Editor }) {
         <FormatButton
           icon="link"
           onClick={handleLink}
-          active={editor.isActive("link") || showLinkInput}
+          active={editor.isActive("link") || showLinkDialog}
         />
         <ToolbarDivider />
         <FormatButton
@@ -459,48 +474,80 @@ function FormattingToolbar({ editor }: { editor: Editor }) {
         />
       </div>
 
-      {/* Inline link URL input */}
-      {showLinkInput && (
-        <div className="flex items-center gap-2 border-t border-[var(--color-slack-border)] px-2 py-1.5">
-          <Image
-            src="/icons/link.svg"
-            alt="Link"
-            width={16}
-            height={16}
-            className="shrink-0 opacity-50"
-          />
-          <input
-            ref={linkInputRef}
-            type="url"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                applyLink();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                cancelLink();
-              }
-            }}
-            placeholder="Enter a URL…"
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--color-slack-text)] placeholder:text-[rgba(29,28,29,0.4)] outline-none"
-          />
-          <button
-            onClick={applyLink}
-            disabled={!linkUrl.trim()}
-            className="shrink-0 rounded px-2 py-0.5 text-[12px] font-medium text-white bg-[var(--color-slack-send-active)] disabled:opacity-40"
-          >
-            Apply
-          </button>
-          <button
-            onClick={cancelLink}
-            className="shrink-0 rounded px-2 py-0.5 text-[12px] font-medium text-[var(--color-slack-text)] hover:bg-[var(--color-slack-border-light)]"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+      {/* Add link dialog */}
+      <Dialog open={showLinkDialog} onOpenChange={(open) => {
+        if (!open) cancelLink();
+      }}>
+        <DialogContent className="sm:max-w-[425px] gap-5">
+          <DialogHeader>
+            <DialogTitle className="text-[18px] font-bold text-[var(--color-slack-text)]">
+              Add link
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            {/* Text field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="link-text"
+                className="text-[15px] font-semibold text-[var(--color-slack-text)]"
+              >
+                Text
+              </label>
+              <input
+                id="link-text"
+                type="text"
+                value={linkText}
+                onChange={(e) => setLinkText(e.target.value)}
+                placeholder="Display text"
+                className="rounded-[8px] border border-[rgba(29,28,29,0.3)] bg-white px-3 py-[9px] text-[15px] text-[var(--color-slack-text)] placeholder:text-[rgba(29,28,29,0.4)] outline-none focus:border-[rgba(29,28,29,0.5)] focus:shadow-[0_0_0_3px_rgba(18,100,163,0.2)]"
+              />
+            </div>
+
+            {/* Link field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="link-url"
+                className="text-[15px] font-semibold text-[var(--color-slack-text)]"
+              >
+                Link
+              </label>
+              <input
+                ref={linkUrlInputRef}
+                id="link-url"
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyLink();
+                  }
+                }}
+                placeholder="Enter a URL"
+                autoFocus
+                className="rounded-[8px] border border-[rgba(29,28,29,0.3)] bg-white px-3 py-[9px] text-[15px] text-[var(--color-slack-text)] placeholder:text-[rgba(29,28,29,0.4)] outline-none focus:border-[rgba(29,28,29,0.5)] focus:shadow-[0_0_0_3px_rgba(18,100,163,0.2)]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-row justify-end gap-2 pt-1">
+            <button
+              onClick={cancelLink}
+              className="rounded-[8px] border border-[rgba(29,28,29,0.3)] bg-white px-4 py-[7px] text-[15px] font-medium text-[var(--color-slack-text)] hover:bg-[#f8f8f8] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={applyLink}
+              disabled={!linkUrl.trim()}
+              className="rounded-[8px] bg-[rgba(29,28,29,0.08)] px-4 py-[7px] text-[15px] font-medium text-[var(--color-slack-text)] transition-colors enabled:bg-[var(--color-slack-send-active)] enabled:text-white enabled:hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Save
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

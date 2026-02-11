@@ -4,6 +4,7 @@ import { useSupabase } from "@/components/providers/SupabaseProvider";
 import type { Conversation } from "@/lib/types";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { channelCache } from "./useConversation";
 
 /** Represents a channel in the sidebar */
 export interface Channel {
@@ -47,6 +48,14 @@ export function useChannels() {
           created_at: c.created_at,
         }))
       );
+
+      // Eagerly populate the channel conversation cache so that
+      // navigating to any channel skips the conversation lookup.
+      for (const c of data as Conversation[]) {
+        if (c.name) {
+          channelCache.set(c.name, c);
+        }
+      }
     }
 
     setLoading(false);

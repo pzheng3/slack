@@ -1,10 +1,13 @@
 "use client";
 
 import type { AgentSession } from "@/lib/hooks/useAgentSessions";
+import { useSupabase } from "@/components/providers/SupabaseProvider";
+import { prefetchSessionChat } from "@/lib/prefetch";
 import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback } from "react";
 
 interface AgentListProps {
   /** Callback to close the mobile sidebar on navigation */
@@ -19,9 +22,22 @@ interface AgentListProps {
  * Renders the list of AI agent sessions in the sidebar.
  * Shows user-created dynamic sessions in the Slack sidebar style.
  * Each item shows a close button on hover to delete the session.
+ *
+ * Prefetches session data on hover for instant navigation.
  */
 export function AgentList({ onNavigate, sessions = [], onDeleteSession }: AgentListProps) {
   const pathname = usePathname();
+  const supabase = useSupabase();
+
+  /**
+   * Prefetch session data on hover so the page renders instantly on click.
+   */
+  const handlePrefetch = useCallback(
+    (sessionId: string) => {
+      prefetchSessionChat(supabase, sessionId);
+    },
+    [supabase]
+  );
 
   return (
     <>
@@ -33,6 +49,7 @@ export function AgentList({ onNavigate, sessions = [], onDeleteSession }: AgentL
         return (
           <div
             key={session.id}
+            onMouseEnter={() => handlePrefetch(session.id)}
             className={`
               group flex h-[28px] w-full min-w-0 items-center rounded-[6px]
               ${

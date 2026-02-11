@@ -27,3 +27,29 @@
 {"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":32,"disabled":false,"willSend":true},"timestamp":1770773458241,"hypothesisId":"H5"}
 {"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":70,"disabled":false,"willSend":true},"timestamp":1770773478212,"hypothesisId":"H5"}
 {"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770773817864,"hypothesisId":"H5"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794275876,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794275877,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794276428,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794276840,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794276841,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1770794277313,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794280600,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794280601,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794281261,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794328994,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794328998,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794331015,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794333010,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794333011,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794333508,"hypothesisId":"H3"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":6,"disabled":false,"willSend":true},"timestamp":1770794338545,"hypothesisId":"H5"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794344002,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794344003,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794344525,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794597812,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794597837,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794597973,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1770794599437,"hypothesisId":"H3"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":20,"disabled":false,"willSend":true},"timestamp":1770795343213,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":5,"disabled":false,"willSend":true},"timestamp":1770795565868,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":6,"disabled":false,"willSend":true},"timestamp":1770795763083,"hypothesisId":"H5"}

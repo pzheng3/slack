@@ -4,6 +4,7 @@ import { useSupabase } from "@/components/providers/SupabaseProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import { AGENTS } from "@/lib/constants";
 import { useDM } from "@/lib/hooks/useDM";
+import { prefetchDM, prefetchAgentChat } from "@/lib/prefetch";
 import type { User } from "@/lib/types";
 import Image from "next/image";
 import Link from "next/link";
@@ -213,6 +214,10 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
       {/* Current user — shown first with "you" label (self-DM) */}
       <button
         onClick={() => handleUserClick(user.id)}
+        onMouseEnter={() => {
+          const convId = dmMap[user.id];
+          if (convId) prefetchDM(supabase, convId);
+        }}
         className={`
           flex h-[28px] w-full min-w-0 items-center gap-2 rounded-[6px] px-3 text-left
           ${
@@ -239,6 +244,9 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
             key={a.id}
             href={href}
             onClick={onNavigate}
+            onMouseEnter={() => {
+              if (user) prefetchAgentChat(supabase, a.username, user.id);
+            }}
             className={`
               flex h-[28px] w-full min-w-0 items-center gap-2 rounded-[6px] px-3 text-left
               ${
@@ -265,6 +273,10 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
           <button
             key={u.id}
             onClick={() => handleUserClick(u.id)}
+            onMouseEnter={() => {
+              const convId = dmMap[u.id];
+              if (convId) prefetchDM(supabase, convId);
+            }}
             className={`
               flex h-[28px] w-full min-w-0 items-center gap-2 rounded-[6px] px-3 text-left
               ${

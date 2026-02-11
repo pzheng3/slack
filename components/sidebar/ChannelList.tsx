@@ -1,10 +1,13 @@
 "use client";
 
 import type { Channel } from "@/lib/hooks/useChannels";
+import { useSupabase } from "@/components/providers/SupabaseProvider";
+import { prefetchChannel } from "@/lib/prefetch";
 import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback } from "react";
 
 interface ChannelListProps {
   /** Callback to close the mobile sidebar on navigation */
@@ -19,9 +22,22 @@ interface ChannelListProps {
  * Renders the list of channels in the sidebar.
  * Each channel has a thin hashtag icon, the channel name,
  * and a close button visible on hover (matching agent list behavior).
+ *
+ * Prefetches conversation + messages on hover for instant navigation.
  */
 export function ChannelList({ onNavigate, channels = [], onDeleteChannel }: ChannelListProps) {
   const pathname = usePathname();
+  const supabase = useSupabase();
+
+  /**
+   * Prefetch channel data on hover so the page renders instantly on click.
+   */
+  const handlePrefetch = useCallback(
+    (channelName: string) => {
+      prefetchChannel(supabase, channelName);
+    },
+    [supabase]
+  );
 
   return (
     <>
@@ -32,6 +48,7 @@ export function ChannelList({ onNavigate, channels = [], onDeleteChannel }: Chan
         return (
           <div
             key={channel.id}
+            onMouseEnter={() => handlePrefetch(channel.name)}
             className={`
               group flex h-[28px] w-full min-w-0 items-center rounded-[6px]
               ${

@@ -6,7 +6,7 @@ import type { MessageWithSender } from "@/lib/types";
 import { useCallback, useEffect, useState } from "react";
 
 /** Module-level cache: conversationId → messages */
-const messagesCache = new Map<string, MessageWithSender[]>();
+export const messagesCache = new Map<string, MessageWithSender[]>();
 
 /**
  * Hook that fetches messages for a given conversation and subscribes to

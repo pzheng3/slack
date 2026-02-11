@@ -129,14 +129,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (trimmed.length < 2) return "Username must be at least 2 characters";
       if (trimmed.length > 30) return "Username must be 30 characters or less";
 
-      // Check if username is taken
+      // Check if username already exists — if so, log in as that user
       const { data: existing } = await supabase
         .from("users")
-        .select("id")
+        .select("*")
         .eq("username", trimmed)
         .single();
 
-      if (existing) return "Username is already taken";
+      if (existing) {
+        localStorage.setItem(STORAGE_KEY, existing.id);
+        localStorage.setItem(STORAGE_USERNAME_KEY, trimmed);
+        setUser(existing as User);
+        return null; // success — logged in as existing user
+      }
 
       // Use a custom avatar if one is mapped, otherwise pick a random default
       const randomAvatar =

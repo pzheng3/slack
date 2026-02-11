@@ -5,10 +5,10 @@ import type { Conversation } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 /** Module-level cache: channelName → Conversation */
-const channelCache = new Map<string, Conversation>();
+export const channelCache = new Map<string, Conversation>();
 
 /** Module-level cache: conversationId → Conversation */
-const conversationByIdCache = new Map<string, Conversation>();
+export const conversationByIdCache = new Map<string, Conversation>();
 
 /**
  * Hook to look up a channel conversation by its name.
