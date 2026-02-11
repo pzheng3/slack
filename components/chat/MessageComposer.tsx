@@ -6,7 +6,9 @@ import Link from "@tiptap/extension-link";
 import Mention from "@tiptap/extension-mention";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDM } from "@/lib/hooks/useDM";
 import {
   Popover,
   PopoverContent,
@@ -18,6 +20,7 @@ import { createMentionSuggestion } from "@/lib/mention-suggestion";
 import { useSlashCommands } from "@/lib/hooks/useSlashCommands";
 import { createSlashSuggestion } from "@/lib/slash-suggestion";
 import { SlashCommand } from "@/lib/slash-command-extension";
+import { SlashCommandNode } from "@/lib/slash-command-node";
 
 interface MessageComposerProps {
   /** Called when the user sends a message (content is HTML) */
@@ -44,6 +47,8 @@ export function MessageComposer({
   autoFocus = false,
   defaultShowToolbar = true,
 }: MessageComposerProps) {
+  const router = useRouter();
+  const { findOrCreateDM } = useDM();
   const [showToolbar, setShowToolbar] = useState(defaultShowToolbar);
   const [hasContent, setHasContent] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -105,6 +110,7 @@ export function MessageComposer({
         HTMLAttributes: { class: "mention" },
         suggestion: mentionSuggestion,
       }),
+      SlashCommandNode,
       SlashCommand.configure({
         suggestion: slashSuggestion,
       }),
@@ -192,14 +198,62 @@ export function MessageComposer({
     [editor]
   );
 
+  /**
+   * Handle clicks on @mention chips inside the editor.
+   * Parses the `data-id` attribute (format `category:entityId`) and
+   * navigates to the corresponding chat session.
+   */
+  const handleEditorClick = useCallback(
+    async (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = (e.target as HTMLElement).closest?.(
+        "[data-type='mention']"
+      ) as HTMLElement | null;
+      if (!target) return;
+
+      const raw = target.getAttribute("data-id");
+      if (!raw) return;
+
+      const colonIdx = raw.indexOf(":");
+      if (colonIdx === -1) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const category = raw.slice(0, colonIdx);
+      const entityId = raw.slice(colonIdx + 1);
+
+      switch (category) {
+        case "channel": {
+          const label = target.textContent?.replace(/^@/, "") ?? "";
+          router.push(`/chat/channel/${encodeURIComponent(label)}`);
+          break;
+        }
+        case "agent":
+          router.push(`/chat/agent/session/${entityId}`);
+          break;
+        case "people": {
+          const convId = await findOrCreateDM(entityId);
+          if (convId) router.push(`/chat/dm/${convId}`);
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    [router, findOrCreateDM]
+  );
+
   return (
     <div className="bg-white px-5 pb-6">
       <div className="flex flex-col rounded-lg border border-[var(--color-slack-border)] bg-white transition-[border-color,box-shadow] duration-200 focus-within:border-[rgba(29,28,29,0.3)] focus-within:shadow-[0px_1px_3px_0px_rgba(0,0,0,0.08)]">
         {/* Formatting toolbar — toggled by the formatting button */}
         {showToolbar && editor && <FormattingToolbar editor={editor} />}
 
-        {/* Rich-text editor area */}
-        <EditorContent editor={editor} />
+        {/* Rich-text editor area — click handler for @mention navigation */}
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+        <div onClick={handleEditorClick}>
+          <EditorContent editor={editor} />
+        </div>
 
         {/* Bottom action bar */}
         <div className="flex items-center justify-between rounded-b-lg pb-[2px] pl-[6px] pr-1">

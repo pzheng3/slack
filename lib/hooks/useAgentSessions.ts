@@ -119,6 +119,21 @@ export function useAgentSessions() {
   }, []);
 
   /**
+   * Listen for "agent-session-deleted" custom events dispatched by
+   * useSessionChat when an empty session is auto-cleaned on unmount.
+   */
+  useEffect(() => {
+    const handleDeleted = (e: Event) => {
+      const { sessionId } = (e as CustomEvent).detail;
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    };
+
+    window.addEventListener("agent-session-deleted", handleDeleted);
+    return () =>
+      window.removeEventListener("agent-session-deleted", handleDeleted);
+  }, []);
+
+  /**
    * Create a new agent session.
    *
    * 1. Finds (or auto-creates) the generic "Slack Agent" agent user.

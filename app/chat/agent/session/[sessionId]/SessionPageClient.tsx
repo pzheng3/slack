@@ -43,7 +43,7 @@ export default function SessionPageClient({
       </div>
 
       {/* Messages */}
-      <MessageList messages={messages} loading={loading} />
+      <MessageList messages={messages} loading={loading} streaming={streaming} />
 
       {/* Composer — auto-focused so the user can type immediately */}
       <MessageComposer

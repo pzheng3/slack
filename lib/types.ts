@@ -40,18 +40,32 @@ export interface MessageWithSender extends Message {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Slash Commands                                                     */
+/*  Slash Commands & Agent Skills                                      */
 /* ------------------------------------------------------------------ */
 
 /** Category a slash command item belongs to. */
 export type SlashCommandCategory = "command" | "skill" | "app";
 
 /**
+ * Describes a bundled resource file inside a skill directory
+ * (references/, scripts/, or assets/).
+ * Follows the Agent Skills specification (agentskills.io).
+ */
+export interface SkillResource {
+  /** File name (e.g. "language-tips.md") */
+  name: string;
+  /** Relative path from the skill root (e.g. "references/language-tips.md") */
+  path: string;
+  /** Resource type: references are docs, scripts are executable, assets are templates/images */
+  type: "reference" | "script" | "asset";
+}
+
+/**
  * A single item shown in the `/` slash command menu.
- * Covers prepackaged prompts (commands), Anthropic skills, and app actions.
+ * Covers prepackaged prompts (commands), Agent Skills (agentskills.io), and app actions.
  */
 export interface SlashCommandItem {
-  /** Unique identifier (e.g. "command-summarize", "skill-web-search") */
+  /** Unique identifier (e.g. "command-summarize", "skill-web-research") */
   id: string;
   /** Display label shown in the menu (e.g. "/summarize") */
   label: string;
@@ -63,8 +77,14 @@ export interface SlashCommandItem {
   avatar_url: string | null;
   /** Which tab category this item belongs to */
   category: SlashCommandCategory;
-  /** The prompt body / skill instructions from the markdown file */
+  /** The prompt body / skill instructions from the SKILL.md or markdown file */
   body: string;
+  /**
+   * Bundled resources available for this skill (references, scripts, assets).
+   * Loaded on-demand via the skill-resources API for progressive disclosure.
+   * Only present for "skill" category items; empty array for commands/apps.
+   */
+  resources: SkillResource[];
   /** ISO timestamp for recency sorting */
   timestamp: string;
 }

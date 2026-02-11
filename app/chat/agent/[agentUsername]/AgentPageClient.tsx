@@ -41,7 +41,7 @@ export default function AgentPageClient({
       </div>
 
       {/* Messages */}
-      <MessageList messages={messages} loading={loading} />
+      <MessageList messages={messages} loading={loading} streaming={streaming} />
 
       {/* Composer */}
       <MessageComposer

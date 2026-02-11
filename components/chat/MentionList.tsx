@@ -113,16 +113,57 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
       return map;
     }, [items]);
 
-    /** Items filtered by query (case-insensitive substring on label + content). */
+    /**
+     * Relevance score for a single item against the query.
+     * Higher = better match. Title matches outrank content-only matches;
+     * prefix matches outrank substring matches.
+     *
+     *   3 — label starts with the query (prefix match)
+     *   2 — label contains the query (substring match)
+     *   1 — searchableContent contains the query (content-only match)
+     *   0 — no match
+     */
+    const scoreItem = useCallback(
+      (item: MentionItem, q: string): number => {
+        const label = item.label.toLowerCase();
+        if (label.startsWith(q)) return 3;
+        if (label.includes(q)) return 2;
+        if (
+          item.searchableContent &&
+          item.searchableContent.toLowerCase().includes(q)
+        )
+          return 1;
+        return 0;
+      },
+      []
+    );
+
+    /**
+     * Items that match the query, sorted by relevance then recency.
+     * Title matches always appear before content-only matches.
+     */
     const filtered = useMemo(() => {
       if (!isSearching) return items;
       const q = query.toLowerCase();
-      return items.filter(
-        (i) =>
-          i.label.toLowerCase().includes(q) ||
-          (i.searchableContent && i.searchableContent.toLowerCase().includes(q))
-      );
-    }, [items, query, isSearching]);
+
+      type Scored = { item: MentionItem; score: number };
+      const scored: Scored[] = [];
+      for (const item of items) {
+        const s = scoreItem(item, q);
+        if (s > 0) scored.push({ item, score: s });
+      }
+
+      // Primary: score desc, secondary: recency desc
+      scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return (
+          new Date(b.item.timestamp).getTime() -
+          new Date(a.item.timestamp).getTime()
+        );
+      });
+
+      return scored.map((s) => s.item);
+    }, [items, query, isSearching, scoreItem]);
 
     /** Filtered items grouped by category. */
     const filteredByCategory = useMemo(() => {
@@ -142,14 +183,8 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
     const visibleItems = useMemo((): MentionItem[] => {
       if (activeTab === "recent") {
         if (isSearching) {
-          // "All results" mode — all matching items sorted by recency
-          return [...filtered]
-            .sort(
-              (a, b) =>
-                new Date(b.timestamp).getTime() -
-                new Date(a.timestamp).getTime()
-            )
-            .slice(0, 20);
+          // "All results" — already sorted by relevance then recency
+          return filtered.slice(0, 20);
         }
         // Recent mode — all items sorted purely by interaction recency
         return [...items]
@@ -160,7 +195,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
           )
           .slice(0, 20);
       }
-      // Specific category tab
+      // Specific category tab — filtered list is already relevance-sorted
       const source = isSearching
         ? filteredByCategory[activeTab]
         : byCategory[activeTab];

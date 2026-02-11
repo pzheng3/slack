@@ -221,6 +221,22 @@
   text-decoration: underline;
 }
 
+/* /slash command & skill tags */
+.slash-command {
+  background-color: rgba(111, 76, 255, 0.1);
+  color: #6F4CFF;
+  border-radius: 3px;
+  padding: 0 3px;
+  font-weight: 400;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.slash-command:hover {
+  background-color: rgba(111, 76, 255, 0.2);
+}
+
 /* Headings (from Markdown) */
 .rich-text h1 {
   font-size: 1.25em;
@@ -280,6 +296,44 @@
   border-radius: 4px;
 }
 
+/* Inline source citation chips (favicon + site name) */
+/* Uses `.rich-text a` prefix to override the default link color (#1264a3) */
+.rich-text a.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  /* favicon 3px radius + 3px padding = 6px concentric outer radius */
+  border-radius: 6px;
+  padding: 2px 6px 2px 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-slack-text-secondary);
+  background: rgba(29, 28, 29, 0.07);
+  text-decoration: none;
+  vertical-align: middle;
+  margin-left: 2px;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.rich-text a.source-chip:hover {
+  background: rgba(29, 28, 29, 0.13);
+  color: var(--color-slack-text);
+  text-decoration: none;
+}
+.rich-text a.source-chip img {
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: inline;
+  max-width: none;
+}
+.rich-text a.source-chip span {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ======================================================
    Emoji picker (emoji-mart) — Slack-style theming
    ====================================================== */
@@ -303,4 +357,41 @@ em-emoji-picker {
 /** Container reset — remove Popover padding so picker fills the entire area */
 .emoji-picker-container {
   line-height: 0;
+}
+
+/* ======================================================
+   Typing indicator – 3 bouncing dots
+   ====================================================== */
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px; /* matches single-line message height */
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-slack-text-secondary);
+  animation: typing-bounce 1.4s ease-in-out infinite both;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes typing-bounce {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

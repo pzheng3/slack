@@ -4,6 +4,11 @@ import { useSupabase } from "@/components/providers/SupabaseProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import type { Conversation, MessageWithSender, User } from "@/lib/types";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  buildAIContent,
+  extractEntityReferences,
+  fetchEntityContext,
+} from "@/lib/slash-command-utils";
 
 /**
  * Cached result for an agent chat, keyed by agentUsername.
@@ -309,6 +314,28 @@ export function useAgentChat(agentUsername: string) {
       ]);
 
       // --- 2. Build OpenAI conversation history from persisted messages ---
+      // For the latest user message, extract any slash-command instruction
+      // bodies and prepend them so the model receives clear prompts.
+      // Older messages are sent as-is (their HTML is fine for context).
+
+      // Check for cross-entity references (e.g. @watercooler /summarize)
+      // and fetch messages from the referenced entity if found.
+      const entityRefs = extractEntityReferences(content);
+      let entityContext = null;
+      if (entityRefs.length > 0 && user) {
+        try {
+          entityContext = await fetchEntityContext(
+            supabase,
+            entityRefs[0],
+            user.id
+          );
+        } catch (err) {
+          console.warn("[useAgentChat] Failed to fetch entity context:", err);
+        }
+      }
+
+      const aiContent = buildAIContent(content, entityContext);
+
       const history = [
         ...messages.map((m) => ({
           role: (m.sender_id === agent.id ? "assistant" : "user") as
@@ -316,7 +343,7 @@ export function useAgentChat(agentUsername: string) {
             | "assistant",
           content: m.content,
         })),
-        { role: "user" as const, content },
+        { role: "user" as const, content: aiContent },
       ];
 
       // --- 3. Start streaming ---
@@ -355,6 +382,7 @@ export function useAgentChat(agentUsername: string) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = "";
+        let sources: { url: string; title: string }[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -380,11 +408,31 @@ export function useAgentChat(agentUsername: string) {
                     )
                   );
                 }
+                // Capture web-search source citations
+                if (parsed.sources) {
+                  sources = parsed.sources;
+                  // Show sources immediately in the streaming message
+                  const contentWithSources =
+                    fullContent +
+                    `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === streamingId
+                        ? { ...m, content: contentWithSources }
+                        : m
+                    )
+                  );
+                }
               } catch {
                 // Skip malformed SSE chunks
               }
             }
           }
+        }
+
+        // Embed source metadata in the persisted content
+        if (sources.length > 0) {
+          fullContent += `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
         }
 
         // --- 4. Persist the complete agent response to DB ---

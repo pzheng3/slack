@@ -67,19 +67,37 @@ export async function POST(req: NextRequest) {
     });
 
     // Extract text from the response
-    const reply = response.output
-      .filter((item) => item.type === "message")
+    const messageItems = response.output.filter(
+      (item) => item.type === "message"
+    );
+    const textBlocks = messageItems
       .flatMap((item) => item.content)
-      .filter((block) => block.type === "output_text")
-      .map((block) => block.text)
-      .join("");
+      .filter((block) => block.type === "output_text");
+
+    const reply = textBlocks.map((block) => block.text).join("");
 
     // If the agent chose not to reply, return empty
     if (!reply || reply.trim() === "[NO_REPLY]") {
       return NextResponse.json({ reply: "" });
     }
 
-    return NextResponse.json({ reply: reply.trim() });
+    // Extract web-search citation annotations (with positions) and embed in the reply
+    const annotations = textBlocks
+      .flatMap((block) => block.annotations ?? [])
+      .filter((a) => a.type === "url_citation")
+      .map((a: { url?: string; title?: string; start_index?: number; end_index?: number }) => ({
+        url: a.url,
+        title: a.title,
+        start_index: a.start_index,
+        end_index: a.end_index,
+      }));
+
+    let finalReply = reply.trim();
+    if (annotations.length > 0) {
+      finalReply += `\n\n<!--SOURCES:${JSON.stringify(annotations)}-->`;
+    }
+
+    return NextResponse.json({ reply: finalReply });
   } catch (error) {
     console.error("OpenAI API error (agent-reply):", error);
     return NextResponse.json(

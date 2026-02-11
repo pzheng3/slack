@@ -1,90 +1,29 @@
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696435965,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696435966,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696436002,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":15,"disabled":false,"willSend":true},"timestamp":1770696658877,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696950871,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696950872,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696951749,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696951750,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":2,"disabled":false,"willSend":true},"timestamp":1770696953921,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:sendMessage-entry","message":"sendMessage called","data":{"hasConversation":false,"hasUser":true,"hasAgent":false,"contentLength":2,"loading":true,"streaming":false},"timestamp":1770696953922,"hypothesisId":"H1"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":2,"disabled":false,"willSend":true},"timestamp":1770696954533,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:sendMessage-entry","message":"sendMessage called","data":{"hasConversation":false,"hasUser":true,"hasAgent":false,"contentLength":2,"loading":true,"streaming":false},"timestamp":1770696954533,"hypothesisId":"H1"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696956435,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696956436,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696957893,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770696957893,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":21,"disabled":false,"willSend":true},"timestamp":1770696973949,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":11,"disabled":false,"willSend":true},"timestamp":1770697076109,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":15,"disabled":false,"willSend":true},"timestamp":1770697095184,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":14,"disabled":false,"willSend":true},"timestamp":1770697112788,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697120744,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697120744,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":33,"disabled":false,"willSend":true},"timestamp":1770697254754,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":6,"disabled":false,"willSend":true},"timestamp":1770697261859,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697268842,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697268842,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697269554,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697269554,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":2,"disabled":false,"willSend":true},"timestamp":1770697271402,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:sendMessage-entry","message":"sendMessage called","data":{"hasConversation":false,"hasUser":true,"hasAgent":false,"contentLength":2,"loading":true,"streaming":false},"timestamp":1770697271402,"hypothesisId":"H1"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697278770,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697278771,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697278896,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697282848,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697282849,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697283147,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697283149,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697293950,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Draft an email to vendor","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697293950,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697294682,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Summarize today's messages","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770697294683,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":14,"disabled":false,"willSend":true},"timestamp":1770697639910,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":31,"disabled":false,"willSend":true},"timestamp":1770697666036,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":18,"disabled":false,"willSend":true},"timestamp":1770697879352,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":23,"disabled":false,"willSend":true},"timestamp":1770697891240,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":27,"disabled":false,"willSend":true},"timestamp":1770697903101,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":17,"disabled":false,"willSend":true},"timestamp":1770698696407,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":2,"disabled":false,"willSend":true},"timestamp":1770698855192,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":15,"disabled":false,"willSend":true},"timestamp":1770699053294,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":21,"disabled":false,"willSend":true},"timestamp":1770699088679,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":51,"disabled":false,"willSend":true},"timestamp":1770699221789,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":19,"disabled":false,"willSend":true},"timestamp":1770699261322,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":39,"disabled":false,"willSend":true},"timestamp":1770699289298,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":39,"disabled":false,"willSend":true},"timestamp":1770699313905,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":33,"disabled":false,"willSend":true},"timestamp":1770700089972,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":26,"disabled":false,"willSend":true},"timestamp":1770700242430,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":28,"disabled":false,"willSend":true},"timestamp":1770700251971,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":24,"disabled":false,"willSend":true},"timestamp":1770700275341,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":60,"disabled":false,"willSend":true},"timestamp":1770700352903,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":38,"disabled":false,"willSend":true},"timestamp":1770700463283,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":17,"disabled":false,"willSend":true},"timestamp":1770700489592,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"trimmedLength":26,"disabled":false,"willSend":true},"timestamp":1770700510247,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":17,"disabled":false,"willSend":true},"timestamp":1770700957995,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":35,"disabled":false,"willSend":true},"timestamp":1770700970278,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":2,"disabled":false,"willSend":true},"timestamp":1770701311000,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":1,"disabled":false,"willSend":true},"timestamp":1770701311027,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":30,"disabled":false,"willSend":true},"timestamp":1770701830832,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":2,"disabled":false,"willSend":true},"timestamp":1770701836248,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":36,"disabled":false,"willSend":true},"timestamp":1770703399957,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":22,"disabled":false,"willSend":true},"timestamp":1770703693635,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1770703850504,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770703860811,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":0,"disabled":false,"willSend":false},"timestamp":1770703860968,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":12,"disabled":false,"willSend":true},"timestamp":1770703868112,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":17,"disabled":false,"willSend":true},"timestamp":1770703888131,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":24,"disabled":false,"willSend":true},"timestamp":1770703912753,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":53,"disabled":false,"willSend":true},"timestamp":1770704649021,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":16,"disabled":false,"willSend":true},"timestamp":1770704767144,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":28,"disabled":false,"willSend":true},"timestamp":1770704777417,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":66,"disabled":false,"willSend":true},"timestamp":1770705198048,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":37,"disabled":false,"willSend":true},"timestamp":1770705476602,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770705752208,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":15,"disabled":false,"willSend":true},"timestamp":1770706626289,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":16,"disabled":false,"willSend":true},"timestamp":1770706966957,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":28,"disabled":false,"willSend":true},"timestamp":1770706978475,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":1,"disabled":false,"willSend":true},"timestamp":1770707005566,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":37,"disabled":false,"willSend":true},"timestamp":1770707120680,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":1,"disabled":false,"willSend":true},"timestamp":1770707133730,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":24,"disabled":false,"willSend":true},"timestamp":1770707330074,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":11,"disabled":false,"willSend":true},"timestamp":1770707335686,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1770769049758,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1770769070573,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":21,"disabled":false,"willSend":true},"timestamp":1770769418743,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":31,"disabled":false,"willSend":true},"timestamp":1770769478145,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":0,"disabled":false,"willSend":false},"timestamp":1770770470092,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1770770547997,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770770624421,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":8,"disabled":false,"willSend":true},"timestamp":1770770635785,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":23,"disabled":false,"willSend":true},"timestamp":1770770650015,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":48,"disabled":false,"willSend":true},"timestamp":1770770681213,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770771377317,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770771642852,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770771702466,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":26,"disabled":false,"willSend":true},"timestamp":1770772378632,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":34,"disabled":false,"willSend":true},"timestamp":1770772428889,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770772440732,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":7,"disabled":false,"willSend":true},"timestamp":1770772450361,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":36,"disabled":false,"willSend":true},"timestamp":1770772472581,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":9,"disabled":false,"willSend":true},"timestamp":1770772967175,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":9,"disabled":false,"willSend":true},"timestamp":1770772980948,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":28,"disabled":false,"willSend":true},"timestamp":1770773186047,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":4,"disabled":false,"willSend":true},"timestamp":1770773309270,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":41,"disabled":false,"willSend":true},"timestamp":1770773327546,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":30,"disabled":false,"willSend":true},"timestamp":1770773374627,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":47,"disabled":false,"willSend":true},"timestamp":1770773393036,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":32,"disabled":false,"willSend":true},"timestamp":1770773438217,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":32,"disabled":false,"willSend":true},"timestamp":1770773458241,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":70,"disabled":false,"willSend":true},"timestamp":1770773478212,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770773817864,"hypothesisId":"H5"}

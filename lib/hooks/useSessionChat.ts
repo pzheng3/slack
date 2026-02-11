@@ -4,7 +4,12 @@ import { useSupabase } from "@/components/providers/SupabaseProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import { GENERIC_AGENT } from "@/lib/constants";
 import type { Conversation, MessageWithSender, User } from "@/lib/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  buildAIContent,
+  extractEntityReferences,
+  fetchEntityContext,
+} from "@/lib/slash-command-utils";
 
 /**
  * Cached result for a session chat, keyed by sessionId.
@@ -40,6 +45,74 @@ export function useSessionChat(sessionId: string) {
   );
   const [loading, setLoading] = useState(!cached);
   const [streaming, setStreaming] = useState(false);
+
+  // ---------------------------------------------------------------
+  // Auto-cleanup: delete empty sessions when the user navigates away
+  // ---------------------------------------------------------------
+  // Refs track the latest state for the cleanup effect, which only
+  // runs on unmount and therefore can't capture state via closures.
+  const loadedRef = useRef(false);
+  const hasUserMessagesRef = useRef(false);
+  const conversationRef = useRef<Conversation | null>(null);
+  const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Keep refs in sync with the latest state. */
+  useEffect(() => {
+    if (!loading && conversation && agent) {
+      loadedRef.current = true;
+      conversationRef.current = conversation;
+      hasUserMessagesRef.current = messages.some(
+        (m) => m.sender_id !== agent.id
+      );
+    }
+  }, [loading, conversation, agent, messages]);
+
+  /**
+   * On unmount, check whether the user ever sent a message. If not,
+   * the session was abandoned — delete it from the database and notify
+   * the sidebar so it updates instantly.
+   *
+   * Uses a short delay to handle React Strict Mode (which unmounts
+   * and re-mounts in dev). The timer is cancelled on re-mount.
+   */
+  useEffect(() => {
+    // Cancel any pending cleanup from a prior Strict-Mode unmount cycle
+    if (cleanupTimerRef.current) {
+      clearTimeout(cleanupTimerRef.current);
+      cleanupTimerRef.current = null;
+    }
+
+    return () => {
+      // Capture ref values in local consts for the closure
+      const loaded = loadedRef.current;
+      const hasUserMsgs = hasUserMessagesRef.current;
+      const conv = conversationRef.current;
+
+      if (loaded && conv && !hasUserMsgs) {
+        const idToDelete = conv.id;
+
+        cleanupTimerRef.current = setTimeout(() => {
+          // Remove from the in-memory cache
+          sessionChatCache.delete(idToDelete);
+
+          // Delete from database (fire-and-forget)
+          supabase
+            .from("conversations")
+            .delete()
+            .eq("id", idToDelete)
+            .then(() => {
+              // Notify the sidebar to remove the session from its list
+              window.dispatchEvent(
+                new CustomEvent("agent-session-deleted", {
+                  detail: { sessionId: idToDelete },
+                })
+              );
+            });
+        }, 150);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
 
   // Load the conversation, agent, and messages
   useEffect(() => {
@@ -172,7 +245,28 @@ export function useSessionChat(sessionId: string) {
         ]);
       }
 
-      // Build history for OpenAI
+      // Build history for OpenAI.
+      // For the latest user message, extract any slash-command instruction
+      // bodies and prepend them so the model receives clear prompts.
+
+      // Check for cross-entity references (e.g. @watercooler /summarize)
+      // and fetch messages from the referenced entity if found.
+      const entityRefs = extractEntityReferences(content);
+      let entityContext = null;
+      if (entityRefs.length > 0 && user) {
+        try {
+          entityContext = await fetchEntityContext(
+            supabase,
+            entityRefs[0],
+            user.id
+          );
+        } catch (err) {
+          console.warn("[useSessionChat] Failed to fetch entity context:", err);
+        }
+      }
+
+      const aiContent = buildAIContent(content, entityContext);
+
       const history = [
         ...messages.map((m) => ({
           role: (m.sender_id === agent.id ? "assistant" : "user") as
@@ -180,7 +274,7 @@ export function useSessionChat(sessionId: string) {
             | "assistant",
           content: m.content,
         })),
-        { role: "user" as const, content },
+        { role: "user" as const, content: aiContent },
       ];
 
       // Build system prompt — use the workspace-aware agent prompt,
@@ -222,6 +316,7 @@ export function useSessionChat(sessionId: string) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = "";
+        let sources: { url: string; title: string }[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -247,11 +342,30 @@ export function useSessionChat(sessionId: string) {
                     )
                   );
                 }
+                // Capture web-search source citations
+                if (parsed.sources) {
+                  sources = parsed.sources;
+                  const contentWithSources =
+                    fullContent +
+                    `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === streamingMsg.id
+                        ? { ...m, content: contentWithSources }
+                        : m
+                    )
+                  );
+                }
               } catch {
                 // Skip malformed chunks
               }
             }
           }
+        }
+
+        // Embed source metadata in the persisted content
+        if (sources.length > 0) {
+          fullContent += `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
         }
 
         // Persist the complete agent message to DB

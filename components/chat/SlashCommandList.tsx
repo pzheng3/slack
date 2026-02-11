@@ -39,8 +39,13 @@ export interface SlashCommandListProps {
   items: SlashCommandItem[];
   /** Current typed query after the / character. */
   query: string;
-  /** Called when the user selects an item. */
-  command: (item: { id: string; label: string }) => void;
+  /** Called when the user selects an item. Passes full data needed for the node. */
+  command: (item: {
+    id: string;
+    label: string;
+    category: string;
+    body: string;
+  }) => void;
   /** Ordered list of recently-used item ids (most recent first). */
   recentIds: string[];
   /** Callback to record a command as recently used. */
@@ -77,6 +82,8 @@ export const SlashCommandList = forwardRef<
   const [activeTab, setActiveTab] = useState<TabKey>("recent");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  /** Whether the currently hovered row's subtitle text is truncated. */
+  const [hoveredTruncated, setHoveredTruncated] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   const isSearching = query.length > 0;
@@ -187,7 +194,12 @@ export const SlashCommandList = forwardRef<
       const item = visibleItems[index];
       if (item) {
         onRecordRecent(item.id);
-        command({ id: item.id, label: item.label });
+        command({
+          id: item.id,
+          label: item.label,
+          category: item.category,
+          body: item.body,
+        });
       }
     },
     [visibleItems, command, onRecordRecent]
@@ -279,10 +291,10 @@ export const SlashCommandList = forwardRef<
         ))}
       </div>
 
-      {/* Item list */}
-      <div ref={listRef} className="max-h-[320px] overflow-y-auto py-2">
+      {/* Item list — fixed height so switching tabs doesn't resize */}
+      <div ref={listRef} className="h-[320px] overflow-y-auto py-2">
         {visibleItems.length === 0 ? (
-          <div className="flex h-[200px] items-center justify-center text-[13px] text-[rgba(29,28,29,0.5)]">
+          <div className="flex h-full items-center justify-center text-[13px] text-[rgba(29,28,29,0.5)]">
             No results
           </div>
         ) : (
@@ -292,22 +304,31 @@ export const SlashCommandList = forwardRef<
               item={item}
               selected={index === selectedIndex}
               onSelect={() => selectItem(index)}
-              onMouseEnter={() => {
+              onMouseEnter={(truncated) => {
                 setSelectedIndex(index);
                 setHoveredIndex(index);
+                setHoveredTruncated(truncated);
               }}
-              onMouseLeave={() => setHoveredIndex(null)}
+              onMouseLeave={() => {
+                setHoveredIndex(null);
+                setHoveredTruncated(false);
+              }}
             />
           ))
         )}
       </div>
 
-      {/* Hover description tooltip */}
-      {tooltipItem &&
+      {/* Hover description tooltip — only when subtitle is truncated */}
+      {hoveredIndex !== null &&
+        hoveredTruncated &&
+        tooltipItem &&
         (tooltipItem.category === "command" ||
           tooltipItem.category === "skill") &&
         tooltipItem.description && (
-          <DescriptionTooltip description={tooltipItem.description} />
+          <DescriptionTooltip
+            description={tooltipItem.description}
+            itemIndex={hoveredIndex}
+          />
         )}
     </div>
   );
@@ -339,47 +360,52 @@ function SlashCommandRow({
   item: SlashCommandItem;
   selected: boolean;
   onSelect: () => void;
-  onMouseEnter: () => void;
+  /** Called with `true` when the subtitle is truncated, `false` otherwise. */
+  onMouseEnter: (truncated: boolean) => void;
   onMouseLeave: () => void;
 }) {
+  const subtitleRef = useRef<HTMLDivElement>(null);
+
+  /** Strip leading "/" from command/skill labels for display. */
+  const displayLabel =
+    item.category !== "app" && item.label.startsWith("/")
+      ? item.label.slice(1)
+      : item.label;
+
   return (
     <button
       className={`flex w-full items-center py-[10px] pl-2 text-left ${
         selected ? "bg-[#ebebeb]" : ""
       }`}
       onClick={onSelect}
-      onMouseEnter={onMouseEnter}
+      onMouseEnter={() => {
+        const el = subtitleRef.current;
+        const truncated = el ? el.scrollWidth > el.clientWidth : false;
+        onMouseEnter(truncated);
+      }}
       onMouseLeave={onMouseLeave}
     >
       {/* Icon / Avatar */}
-      <div className="flex shrink-0 items-start px-2 pb-[10px] pt-1">
+      <div className="flex shrink-0 items-center px-2">
         <SlashCommandIcon item={item} />
       </div>
 
       {/* Label + description */}
       <div className="flex min-w-0 flex-col items-start pr-2">
         <span className="text-[15px] font-bold leading-[22px] text-[#1d1c1d]">
-          {item.label}
+          {displayLabel}
         </span>
-        <div className="flex items-center text-[13px] leading-[18px] text-[rgba(29,28,29,0.7)]">
+        <div
+          ref={subtitleRef}
+          className="truncate w-full text-[13px] leading-[18px] text-[rgba(29,28,29,0.7)]"
+        >
           {item.category === "app" ? (
-            <>
-              <span className="font-bold">
-                Command &middot;{" "}
-                {item.label.startsWith("/")
-                  ? item.label.slice(1).split(" ")[0]
-                  : "App"}
-              </span>
-              {item.description && (
-                <span className="font-normal">
-                  {" "}
-                  &middot; {item.description}
-                </span>
-              )}
-            </>
+            <AppSubtitle item={item} />
           ) : (
             <span>
-              {item.category === "command" ? "Command" : "Skill"}
+              <span className="font-bold">
+                {item.category === "command" ? "Command" : "Skill"}
+              </span>
               {item.description ? ` · ${item.description}` : ""}
             </span>
           )}
@@ -427,20 +453,113 @@ function SlashCommandIcon({ item }: { item: SlashCommandItem }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  App subtitle sub-component                                         */
+/* ------------------------------------------------------------------ */
+
+/** Slack-owned avatar paths — commands using these show "Slack · description". */
+const SLACK_AVATARS = new Set(["/images/Slack.png", "/images/Slackbot.png"]);
+
+/**
+ * Subtitle line for app items in the slash command dropdown.
+ *
+ * - **Slack apps:**        `Slack · Description`
+ * - **Third-party apps:**  `App · AppName · Description`
+ *
+ * "App" / app-name tokens are bold; description is normal weight.
+ *
+ * @param item - The app slash command item
+ */
+function AppSubtitle({ item }: { item: SlashCommandItem }) {
+  const isSlack = SLACK_AVATARS.has(item.avatar_url ?? "");
+
+  if (isSlack) {
+    return (
+      <span>
+        <span className="font-bold">Slack</span>
+        {item.description && <span> &middot; {item.description}</span>}
+      </span>
+    );
+  }
+
+  // Derive the app name from the command label: "/notion create ..." → "Notion"
+  const rawName = item.label.startsWith("/")
+    ? item.label.slice(1).split(" ")[0]
+    : "App";
+  const appName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
+  return (
+    <span>
+      <span className="font-bold">App</span>
+      <span> &middot; </span>
+      <span className="font-bold">{appName}</span>
+      {item.description && <span> &middot; {item.description}</span>}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Tooltip sub-component                                              */
 /* ------------------------------------------------------------------ */
 
 /**
  * Floating tooltip that shows the full description text
  * when hovering over a command or skill row.
- * Positioned at the bottom of the dropdown.
+ * Positioned to the right of the dropdown, vertically aligned
+ * to the hovered item index.
  *
  * @param description - The description text to display
+ * @param itemIndex - Index of the hovered item (used for vertical positioning)
  */
-function DescriptionTooltip({ description }: { description: string }) {
+function DescriptionTooltip({
+  description,
+  itemIndex,
+}: {
+  description: string;
+  itemIndex: number;
+}) {
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const VIEWPORT_MARGIN = 8;
+
+  // Each row is ~42px. Tab bar ~37px, list padding-top 8px.
+  const idealTop = 37 + 8 + itemIndex * 42;
+
+  /**
+   * After paint, check if the tooltip overflows the viewport
+   * and nudge it back inside with a margin.
+   */
+  useEffect(() => {
+    const el = tooltipRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+
+    // Clamp bottom edge
+    if (rect.bottom > window.innerHeight - VIEWPORT_MARGIN) {
+      const overflow = rect.bottom - (window.innerHeight - VIEWPORT_MARGIN);
+      el.style.transform = `translateY(${idealTop - overflow}px)`;
+    }
+
+    // Clamp top edge
+    if (rect.top < VIEWPORT_MARGIN) {
+      el.style.transform = `translateY(${idealTop + (VIEWPORT_MARGIN - rect.top)}px)`;
+    }
+
+    // Clamp right edge
+    if (rect.right > window.innerWidth - VIEWPORT_MARGIN) {
+      el.style.left = "auto";
+      el.style.right = "100%";
+      el.style.marginLeft = "0";
+      el.style.marginRight = "8px";
+    }
+  }, [idealTop]);
+
   return (
-    <div className="absolute bottom-0 left-0 right-0 translate-y-full">
-      <div className="mt-1 rounded-md bg-[#1d1c1d] px-3 py-2 text-[13px] leading-[18px] text-white shadow-lg">
+    <div
+      ref={tooltipRef}
+      className="absolute left-full top-0 z-50 ml-2 w-[220px]"
+      style={{ transform: `translateY(${idealTop}px)` }}
+    >
+      <div className="rounded-md bg-[#1d1c1d] px-3 py-2 text-[13px] leading-[18px] text-white shadow-lg">
         {description}
       </div>
     </div>
