@@ -22,7 +22,7 @@ interface SourceCitation {
 }
 
 /** Pattern matching the embedded sources HTML comment */
-const SOURCES_PATTERN = /\n*<!--SOURCES:(.*?)-->/s;
+const SOURCES_PATTERN = /\n*<!--SOURCES:([\s\S]*?)-->/;
 
 /**
  * Extract the domain hostname from a URL for favicon fetching.
