@@ -8,8 +8,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildAIContent,
   extractEntityReferences,
+  extractSkillNames,
   fetchEntityContext,
 } from "@/lib/slash-command-utils";
+import type { EntityContext } from "@/lib/slash-command-utils";
+import { useEntityItems } from "@/components/providers/EntityLinkProvider";
+import type { EntitySummary } from "@/lib/entity-linkify";
+import { dispatchSidebarEvent } from "@/lib/agent-tools/dispatch-sidebar-events";
+import { cleanStreamingContent } from "@/lib/streaming-utils";
 
 /**
  * Cached result for a session chat, keyed by sessionId.
@@ -35,6 +41,7 @@ export const sessionChatCache = new Map<string, SessionChatCacheEntry>();
 export function useSessionChat(sessionId: string) {
   const supabase = useSupabase();
   const { user } = useUser();
+  const allEntities = useEntityItems();
   const cached = sessionChatCache.get(sessionId);
   const [conversation, setConversation] = useState<Conversation | null>(
     cached?.conversation ?? null
@@ -88,7 +95,12 @@ export function useSessionChat(sessionId: string) {
       const hasUserMsgs = hasUserMessagesRef.current;
       const conv = conversationRef.current;
 
-      if (loaded && conv && !hasUserMsgs) {
+      // Only auto-delete sessions that were created manually from the
+      // sidebar ("New agent") and never interacted with. Sessions created
+      // by an agent tool call have a custom name and should be kept.
+      const isDefaultName = conv?.name === "New agent";
+
+      if (loaded && conv && !hasUserMsgs && isDefaultName) {
         const idToDelete = conv.id;
 
         cleanupTimerRef.current = setTimeout(() => {
@@ -246,26 +258,38 @@ export function useSessionChat(sessionId: string) {
       }
 
       // Build history for OpenAI.
-      // For the latest user message, extract any slash-command instruction
-      // bodies and prepend them so the model receives clear prompts.
+      // The prompt is assembled from independent layers:
+      //   @mentions → pull conversation history as context
+      //   /commands → add instruction bodies from .md files
+      //   /skills  → activate skills (loaded server-side from SKILL.md)
+      //   user text → appended at the end
+      // All layers are independent and combine into one holistic prompt.
 
-      // Check for cross-entity references (e.g. @watercooler /summarize)
-      // and fetch messages from the referenced entity if found.
+      // Extract ALL @mentioned entities and fetch their conversation
+      // history in parallel to inject as context.
       const entityRefs = extractEntityReferences(content);
-      let entityContext = null;
+      const entityContexts: EntityContext[] = [];
       if (entityRefs.length > 0 && user) {
-        try {
-          entityContext = await fetchEntityContext(
-            supabase,
-            entityRefs[0],
-            user.id
-          );
-        } catch (err) {
-          console.warn("[useSessionChat] Failed to fetch entity context:", err);
+        const results = await Promise.allSettled(
+          entityRefs.map((ref) =>
+            fetchEntityContext(supabase, ref, user!.id)
+          )
+        );
+        for (const result of results) {
+          if (result.status === "fulfilled" && result.value) {
+            entityContexts.push(result.value);
+          }
         }
       }
 
-      const aiContent = buildAIContent(content, entityContext);
+      // Extract activated skill names from the original HTML before
+      // buildAIContent converts it to plain text.
+      const activatedSkills = extractSkillNames(content);
+
+      const aiContent = buildAIContent(
+        content,
+        entityContexts.length > 0 ? entityContexts : null
+      );
 
       const history = [
         ...messages.map((m) => ({
@@ -302,11 +326,24 @@ export function useSessionChat(sessionId: string) {
       };
       setMessages((prev) => [...prev, streamingMsg]);
 
+      // Build lightweight entity summaries for the AI to annotate references
+      const availableEntities: EntitySummary[] = allEntities.map((e) => ({
+        id: e.id,
+        label: e.label,
+        category: e.category,
+      }));
+
       try {
         const res = await fetch("/api/agent-chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ systemPrompt: sessionContext, messages: history }),
+          body: JSON.stringify({
+            systemPrompt: sessionContext,
+            messages: history,
+            userId: user.id,
+            ...(activatedSkills.length > 0 && { activatedSkills }),
+            ...(availableEntities.length > 0 && { availableEntities }),
+          }),
         });
 
         if (!res.ok || !res.body) {
@@ -317,6 +354,22 @@ export function useSessionChat(sessionId: string) {
         const decoder = new TextDecoder();
         let fullContent = "";
         let sources: { url: string; title: string }[] = [];
+        /** Accumulated tool call statuses for inline display */
+        const toolCalls: { id: string; name: string; arguments: Record<string, unknown>; success?: boolean; result?: string }[] = [];
+
+        /** Build the display content including tool call metadata.
+         *  Cleans streaming artifacts (incomplete links, citation markers)
+         *  so they don't flash as raw text before being parsed. */
+        const buildDisplayContent = () => {
+          let display = cleanStreamingContent(fullContent);
+          if (toolCalls.length > 0) {
+            display = `<!--TOOL_CALLS:${JSON.stringify(toolCalls)}-->\n\n${display}`;
+          }
+          if (sources.length > 0) {
+            display += `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
+          }
+          return display;
+        };
 
         while (true) {
           const { done, value } = await reader.read();
@@ -333,11 +386,10 @@ export function useSessionChat(sessionId: string) {
                 const parsed = JSON.parse(data);
                 if (parsed.text) {
                   fullContent += parsed.text;
-                  // Update the streaming message content
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === streamingMsg.id
-                        ? { ...m, content: fullContent }
+                        ? { ...m, content: buildDisplayContent() }
                         : m
                     )
                   );
@@ -345,15 +397,51 @@ export function useSessionChat(sessionId: string) {
                 // Capture web-search source citations
                 if (parsed.sources) {
                   sources = parsed.sources;
-                  const contentWithSources =
-                    fullContent +
-                    `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === streamingMsg.id
-                        ? { ...m, content: contentWithSources }
+                        ? { ...m, content: buildDisplayContent() }
                         : m
                     )
+                  );
+                }
+                // Handle tool call events
+                if (parsed.tool_call) {
+                  toolCalls.push({
+                    id: parsed.tool_call.id,
+                    name: parsed.tool_call.name,
+                    arguments: parsed.tool_call.arguments,
+                  });
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === streamingMsg.id
+                        ? { ...m, content: buildDisplayContent() }
+                        : m
+                    )
+                  );
+                }
+                // Handle tool result events
+                if (parsed.tool_result) {
+                  const existing = toolCalls.find(
+                    (tc) => tc.id === parsed.tool_result.id
+                  );
+                  if (existing) {
+                    existing.success = parsed.tool_result.success;
+                    existing.result = parsed.tool_result.result;
+                  }
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === streamingMsg.id
+                        ? { ...m, content: buildDisplayContent() }
+                        : m
+                    )
+                  );
+
+                  // Dispatch sidebar events so channels/sessions update
+                  dispatchSidebarEvent(
+                    parsed.tool_result.name,
+                    parsed.tool_result.success,
+                    parsed.tool_result.result
                   );
                 }
               } catch {
@@ -363,19 +451,23 @@ export function useSessionChat(sessionId: string) {
           }
         }
 
-        // Embed source metadata in the persisted content
+        // Build the final persisted content with all metadata
+        let persistContent = fullContent;
+        if (toolCalls.length > 0) {
+          persistContent = `<!--TOOL_CALLS:${JSON.stringify(toolCalls)}-->\n\n${persistContent}`;
+        }
         if (sources.length > 0) {
-          fullContent += `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
+          persistContent += `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
         }
 
         // Persist the complete agent message to DB
-        if (fullContent) {
+        if (persistContent) {
           const { data: agentMsg } = await supabase
             .from("messages")
             .insert({
               conversation_id: conversation.id,
               sender_id: agent.id,
-              content: fullContent,
+              content: persistContent,
             })
             .select(
               `*, sender:users!sender_id (id, username, avatar_url, is_agent)`
@@ -403,7 +495,7 @@ export function useSessionChat(sessionId: string) {
         setStreaming(false);
       }
     },
-    [supabase, conversation, user, agent, messages]
+    [supabase, conversation, user, agent, messages, allEntities]
   );
 
   return { messages, loading, streaming, sendMessage, agent, conversation };

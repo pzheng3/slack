@@ -2,6 +2,7 @@
 
 import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MessageList } from "@/components/chat/MessageList";
+import { useUnread } from "@/components/providers/UnreadProvider";
 import { AGENTS } from "@/lib/constants";
 import { useAgentChat } from "@/lib/hooks/useAgentChat";
 import { consumePendingPrompt } from "@/lib/pending-prompt";
@@ -25,8 +26,16 @@ export default function AgentPageClient({
 }: {
   agentUsername: string;
 }) {
-  const { messages, loading, streaming, sendMessage, agent } =
+  const { messages, loading, streaming, sendMessage, agent, conversation } =
     useAgentChat(agentUsername);
+  const { markAsRead } = useUnread();
+
+  // Mark the agent conversation as read once it resolves
+  useEffect(() => {
+    if (!loading && conversation) {
+      markAsRead(conversation.id);
+    }
+  }, [loading, conversation, markAsRead]);
 
   /**
    * Character agents (e.g. Elon Musk, Steve Jobs) use a people-style

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSupabase } from "@/components/providers/SupabaseProvider";
+import { useUnread } from "@/components/providers/UnreadProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import { AGENTS } from "@/lib/constants";
 import { useDM } from "@/lib/hooks/useDM";
@@ -10,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { UnreadBadge } from "./UnreadBadge";
 
 /** Set of predefined AI character agent usernames */
 const CHARACTER_AGENT_NAMES = new Set(AGENTS.map((a) => a.username));
@@ -36,9 +38,13 @@ type DmConversationMap = Record<string, string>;
 export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
   const supabase = useSupabase();
   const { user } = useUser();
+  const { unreadCounts } = useUnread();
   const pathname = usePathname();
   const router = useRouter();
   const { findOrCreateDM } = useDM();
+
+  /** Map of character agent username → their agent-type conversation ID */
+  const [agentConvMap, setAgentConvMap] = useState<Record<string, string>>({});
 
   /** All non-agent users from the database (excluding the current user) */
   const [otherUsers, setOtherUsers] = useState<
@@ -93,6 +99,69 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
   useEffect(() => {
     fetchAllUsers();
   }, [fetchAllUsers]);
+
+  // -------------------------------------------------------------------
+  // Resolve character agent conversation IDs for unread badge display.
+  // Character agents use agent-type conversations (not DMs), so we need
+  // to look up the conversation ID for each agent the user has chatted with.
+  // -------------------------------------------------------------------
+  useEffect(() => {
+    if (!user || characterAgents.length === 0) return;
+
+    let cancelled = false;
+
+    async function resolveAgentConvIds() {
+      // Get all conversations the current user is a member of
+      const { data: myMemberships } = await supabase
+        .from("conversation_members")
+        .select("conversation_id")
+        .eq("user_id", user!.id);
+
+      if (cancelled || !myMemberships || myMemberships.length === 0) return;
+
+      const myConvIds = myMemberships.map((m) => m.conversation_id);
+      const map: Record<string, string> = {};
+
+      for (const agent of characterAgents) {
+        const { data: agentMemberships } = await supabase
+          .from("conversation_members")
+          .select("conversation_id")
+          .eq("user_id", agent.id)
+          .in("conversation_id", myConvIds);
+
+        if (cancelled) return;
+
+        if (agentMemberships && agentMemberships.length > 0) {
+          const sharedIds = agentMemberships.map((m) => m.conversation_id);
+
+          const { data: agentConv } = await supabase
+            .from("conversations")
+            .select("id")
+            .in("id", sharedIds)
+            .eq("type", "agent")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .single();
+
+          if (cancelled) return;
+
+          if (agentConv) {
+            map[agent.username] = agentConv.id;
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setAgentConvMap(map);
+      }
+    }
+
+    resolveAgentConvIds();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, user, characterAgents]);
 
   // -------------------------------------------------------------------
   // Pre-populate the DM map with existing conversations (for active state
@@ -232,6 +301,9 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
           <span className="truncate">{user.username}</span>
           <span className="shrink-0 ml-1 opacity-70">you</span>
         </span>
+        {dmMap[user.id] && !(activeDmConvId && dmMap[user.id] === activeDmConvId) && (
+          <UnreadBadge count={unreadCounts[dmMap[user.id]] ?? 0} />
+        )}
       </button>
 
       {/* AI character agents — shown before human users */}
@@ -260,6 +332,9 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
             <span className="min-w-0 flex-1 truncate text-[15px] leading-[17px]">
               {a.username}
             </span>
+            {!isActive && agentConvMap[a.username] && (
+              <UnreadBadge count={unreadCounts[agentConvMap[a.username]] ?? 0} />
+            )}
           </Link>
         );
       })}
@@ -290,6 +365,9 @@ export function DirectMessageList({ onNavigate }: DirectMessageListProps) {
             <span className="min-w-0 flex-1 truncate text-[15px] leading-[17px]">
               {u.username}
             </span>
+            {!isActive && convId && (
+              <UnreadBadge count={unreadCounts[convId] ?? 0} />
+            )}
           </button>
         );
       })}

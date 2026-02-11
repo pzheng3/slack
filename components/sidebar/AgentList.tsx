@@ -2,12 +2,14 @@
 
 import type { AgentSession } from "@/lib/hooks/useAgentSessions";
 import { useSupabase } from "@/components/providers/SupabaseProvider";
+import { useUnread } from "@/components/providers/UnreadProvider";
 import { prefetchSessionChat } from "@/lib/prefetch";
 import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback } from "react";
+import { UnreadBadge } from "./UnreadBadge";
 
 interface AgentListProps {
   /** Callback to close the mobile sidebar on navigation */
@@ -28,6 +30,7 @@ interface AgentListProps {
 export function AgentList({ onNavigate, sessions = [], onDeleteSession }: AgentListProps) {
   const pathname = usePathname();
   const supabase = useSupabase();
+  const { unreadCounts } = useUnread();
 
   /**
    * Prefetch session data on hover so the page renders instantly on click.
@@ -77,6 +80,13 @@ export function AgentList({ onNavigate, sessions = [], onDeleteSession }: AgentL
                 {session.name}
               </span>
             </Link>
+
+            {/* Unread badge — hidden when active or on hover (close button takes its place) */}
+            {!isActive && (unreadCounts[session.id] ?? 0) > 0 && (
+              <span className="mr-2 group-hover:hidden">
+                <UnreadBadge count={unreadCounts[session.id]} />
+              </span>
+            )}
 
             {/* Close button — visible on hover, 4px gap from text */}
             {onDeleteSession && (

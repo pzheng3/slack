@@ -23,7 +23,10 @@ import {
 } from "@/components/ui/dialog";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { useMentionSuggestions } from "@/lib/hooks/useMentionSuggestions";
+import { useMentionNavigation } from "@/lib/hooks/useMentionNavigation";
 import { createMentionSuggestion } from "@/lib/mention-suggestion";
+import { ChannelMention } from "@/lib/channel-mention-extension";
+import { createChannelSuggestion } from "@/lib/channel-suggestion";
 import { useSlashCommands } from "@/lib/hooks/useSlashCommands";
 import { createSlashSuggestion } from "@/lib/slash-suggestion";
 import { SlashCommand } from "@/lib/slash-command-extension";
@@ -83,10 +86,26 @@ export function MessageComposer({
   /** Tracks whether the @mention popup is currently visible. */
   const mentionOpenRef = useRef(false);
 
+  /** Shared navigation handler for Cmd+Return in mention/channel menus. */
+  const navigateToItem = useMentionNavigation();
+
   /** Stable suggestion config — uses a ref so the item list stays fresh. */
   const mentionSuggestion = useMemo(
-    () => createMentionSuggestion(() => mentionItemsRef.current, mentionOpenRef),
-    []
+    () => createMentionSuggestion(() => mentionItemsRef.current, mentionOpenRef, { onOpen: navigateToItem }),
+    [navigateToItem]
+  );
+
+  /** Channel-only items for the # channel mention dropdown. */
+  const channelItemsRef = useRef<typeof mentionItems>([]);
+  channelItemsRef.current = mentionItems.filter((i) => i.category === "channel");
+
+  /** Tracks whether the #channel popup is currently visible. */
+  const channelOpenRef = useRef(false);
+
+  /** Stable # channel suggestion config. */
+  const channelSuggestion = useMemo(
+    () => createChannelSuggestion(() => channelItemsRef.current, channelOpenRef, { onOpen: navigateToItem }),
+    [navigateToItem]
   );
 
   /** All slash command items (commands, skills, apps) for the / menu. */
@@ -137,7 +156,31 @@ export function MessageComposer({
       }),
       Mention.configure({
         HTMLAttributes: { class: "mention" },
+        /**
+         * Render mention text with category-aware prefix:
+         * channels → `#name`, everything else → `@name`.
+         */
+        renderText({ node, suggestion }) {
+          const id = (node.attrs.id as string) ?? "";
+          const prefix = id.startsWith("channel:") ? "#" : (suggestion?.char ?? "@");
+          return `${prefix}${node.attrs.label ?? node.attrs.id}`;
+        },
+        renderHTML({ node, suggestion }) {
+          const id = (node.attrs.id as string) ?? "";
+          const prefix = id.startsWith("channel:") ? "#" : (suggestion?.char ?? "@");
+          return `${prefix}${node.attrs.label ?? node.attrs.id}`;
+        },
         suggestion: mentionSuggestion,
+      }),
+      ChannelMention.configure({
+        HTMLAttributes: { class: "channel-mention" },
+        renderText({ node }) {
+          return `#${node.attrs.label ?? node.attrs.id}`;
+        },
+        renderHTML({ node }) {
+          return `#${node.attrs.label ?? node.attrs.id}`;
+        },
+        suggestion: channelSuggestion,
       }),
       SlashCommandNode,
       SlashCommand.configure({
@@ -152,8 +195,8 @@ export function MessageComposer({
       },
       handleKeyDown(view, event) {
         if (event.key === "Enter" && !event.shiftKey) {
-          // If the @mention or /slash suggestion popup is open, let it handle Enter
-          if (mentionOpenRef.current || slashOpenRef.current) {
+          // If any suggestion popup is open, let it handle Enter
+          if (mentionOpenRef.current || channelOpenRef.current || slashOpenRef.current) {
             return false;
           }
 
@@ -233,14 +276,14 @@ export function MessageComposer({
   );
 
   /**
-   * Handle clicks on @mention chips inside the editor.
+   * Handle clicks on @mention and #channel chips inside the editor.
    * Parses the `data-id` attribute (format `category:entityId`) and
    * navigates to the corresponding chat session.
    */
   const handleEditorClick = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>) => {
       const target = (e.target as HTMLElement).closest?.(
-        "[data-type='mention']"
+        "[data-type='mention'], [data-type='channelMention']"
       ) as HTMLElement | null;
       if (!target) return;
 
@@ -258,7 +301,7 @@ export function MessageComposer({
 
       switch (category) {
         case "channel": {
-          const label = target.textContent?.replace(/^@/, "") ?? "";
+          const label = target.textContent?.replace(/^[#@]/, "") ?? "";
           router.push(`/chat/channel/${encodeURIComponent(label)}`);
           break;
         }

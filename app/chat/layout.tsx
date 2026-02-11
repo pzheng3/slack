@@ -3,6 +3,8 @@
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { NewMessageDialog } from "@/components/chat/NewMessageDialog";
+import { EntityLinkProvider } from "@/components/providers/EntityLinkProvider";
+import { UnreadProvider } from "@/components/providers/UnreadProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import { Menu } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -58,41 +60,45 @@ export default function ChatLayout({
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-slack-bg)]">
-      {/* Full-width top bar */}
-      <TopBar />
+    <UnreadProvider>
+      <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-slack-bg)]">
+        {/* Full-width top bar */}
+        <TopBar />
 
-      <div className="flex min-h-0 flex-1">
-        {/* Sidebar */}
-        <Sidebar
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          width={sidebarWidth}
-          onWidthChange={setSidebarWidth}
-          minWidth={SIDEBAR_MIN_WIDTH}
-          maxWidth={SIDEBAR_MAX_WIDTH}
-          onOpenNewMessage={handleOpenNewMessage}
-        />
+        <div className="relative flex min-h-0 flex-1">
+          {/* Sidebar */}
+          <Sidebar
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            width={sidebarWidth}
+            onWidthChange={setSidebarWidth}
+            minWidth={SIDEBAR_MIN_WIDTH}
+            maxWidth={SIDEBAR_MAX_WIDTH}
+            onOpenNewMessage={handleOpenNewMessage}
+          />
 
-        {/* Main content area */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* Mobile-only hamburger bar */}
-          <div className="flex h-10 items-center bg-white px-3 lg:hidden">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="rounded-md p-1.5 hover:bg-[var(--color-slack-border-light)]"
-            >
-              <Menu className="h-5 w-5 text-[var(--color-slack-text)]" />
-            </button>
+          {/* Main content area */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            {/* Mobile-only hamburger bar */}
+            <div className="flex h-10 items-center bg-white px-3 lg:hidden">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="rounded-md p-1.5 hover:bg-[var(--color-slack-border-light)]"
+              >
+                <Menu className="h-5 w-5 text-[var(--color-slack-text)]" />
+              </button>
+            </div>
+
+            {/* Chat content — each page renders its own header + messages + composer */}
+            <main className="flex min-h-0 flex-1 flex-col bg-white">
+              <EntityLinkProvider>{children}</EntityLinkProvider>
+            </main>
           </div>
-
-          {/* Chat content — each page renders its own header + messages + composer */}
-          <main className="flex min-h-0 flex-1 flex-col bg-white">{children}</main>
         </div>
-      </div>
 
-      {/* New message dialog — command palette style */}
-      <NewMessageDialog open={newMessageOpen} onClose={handleCloseNewMessage} />
-    </div>
+        {/* New message dialog — command palette style */}
+        <NewMessageDialog open={newMessageOpen} onClose={handleCloseNewMessage} />
+      </div>
+    </UnreadProvider>
   );
 }

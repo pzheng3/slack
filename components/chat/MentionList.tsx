@@ -68,6 +68,8 @@ export interface MentionListProps {
   query: string;
   /** Called when the user selects an item. */
   command: (item: { id: string; label: string }) => void;
+  /** Optional: called on Cmd+Return to navigate directly to the entity. */
+  onOpen?: (item: MentionItem) => void;
 }
 
 /** Handle exposed to the suggestion renderer for keyboard navigation. */
@@ -90,14 +92,13 @@ export interface MentionListHandle {
  *   Left/Right switches between tabs.
  */
 export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
-  function MentionList({ items, query, command }, ref) {
+  function MentionList({ items, query, command, onOpen }, ref) {
     const [activeTab, setActiveTab] = useState<TabKey>("recent");
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [cmdHeld, setCmdHeld] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
 
-    /** Whether the Cmd (Meta) key is currently held down. */
-    const [cmdHeld, setCmdHeld] = useState(false);
-
+    /** Track Meta key for showing ⌘1–⌘9 shortcut hints. */
     useEffect(() => {
       const down = (e: KeyboardEvent) => {
         if (e.key === "Meta") setCmdHeld(true);
@@ -106,7 +107,6 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
         if (e.key === "Meta") setCmdHeld(false);
       };
       const blur = () => setCmdHeld(false);
-
       window.addEventListener("keydown", down);
       window.addEventListener("keyup", up);
       window.addEventListener("blur", blur);
@@ -262,7 +262,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
       (index: number) => {
         const item = visibleItems[index];
         if (item) {
-          // Encode category:id so rendered mention chips can navigate on click
+          // Encode category:id so rendered mention chips can navigate on click.
           command({ id: `${item.category}:${item.id}`, label: item.label });
         }
       },
@@ -314,7 +314,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
 
           /* Cmd+1 … Cmd+9 selects the corresponding item directly. */
           if (
-            event.metaKey &&
+            (event.metaKey || event.ctrlKey) &&
             event.key >= "1" &&
             event.key <= "9"
           ) {
@@ -324,6 +324,14 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
               selectItem(idx);
               return true;
             }
+          }
+
+          /* Cmd+Return — navigate directly to the entity. */
+          if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault();
+            const item = visibleItems[selectedIndex];
+            if (item && onOpen) onOpen(item);
+            return true;
           }
 
           if (event.key === "Enter") {
@@ -339,7 +347,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
           return false;
         },
       }),
-      [visibleItems, selectedIndex, selectItem, switchTab]
+      [visibleItems, selectedIndex, selectItem, switchTab, onOpen]
     );
 
     /* ---- render -------------------------------------------------- */
@@ -347,7 +355,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
     if (items.length === 0) return null;
 
     return (
-      <div className="w-[calc(100vw-2rem)] max-w-[405px] rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
+      <div className="w-[calc(100vw-2rem)] max-w-[405px] overflow-hidden rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
         {/* Tab bar */}
         <div className="flex overflow-x-auto border-b border-[rgba(29,28,29,0.13)] px-2 pt-2">
           {tabList.map((tab) => (
@@ -366,7 +374,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
         </div>
 
         {/* Item list — fixed height so switching tabs doesn't resize */}
-        <div ref={listRef} className="h-[288px] overflow-y-auto py-1">
+        <div ref={listRef} className="h-[288px] overflow-y-auto py-1 subtle-scrollbar">
           {visibleItems.length === 0 ? (
             <div className="flex h-full items-center justify-center text-[13px] text-[rgba(29,28,29,0.5)]">
               No results
@@ -389,16 +397,16 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
                   {item.label}
                 </span>
 
-                {/* Right-side hint: Cmd+number shortcut or category badge */}
-                {cmdHeld && index < 9 ? (
-                  <span className="ml-auto shrink-0 text-[13px] text-[rgba(29,28,29,0.5)]">
-                    ⌘{index + 1}
-                  </span>
-                ) : activeTab === "recent" ? (
-                  <span className="ml-auto shrink-0 text-[13px] text-[rgba(29,28,29,0.5)]">
-                    {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-                  </span>
-                ) : null}
+                {/* Right-side hint: ⌘number, ⌘↵ to open, or category badge */}
+                <span className="ml-auto shrink-0 text-[13px] text-[rgba(29,28,29,0.5)]">
+                  {cmdHeld && index < 9
+                    ? `⌘${index + 1}`
+                    : index === selectedIndex && onOpen
+                      ? "⌘↵ to open"
+                      : activeTab === "recent"
+                        ? item.category.charAt(0).toUpperCase() + item.category.slice(1)
+                        : ""}
+                </span>
               </button>
             ))
           )}

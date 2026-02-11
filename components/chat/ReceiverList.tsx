@@ -34,7 +34,7 @@ const AVATAR_COLORS = [
 const TABS: { key: TabKey; label: string }[] = [
   { key: "recent", label: "Recent" },
   { key: "agent", label: "Agent" },
-  { key: "people", label: "People" },
+  { key: "people", label: "Person" },
   { key: "channel", label: "Channel" },
 ];
 
@@ -452,7 +452,7 @@ export const ReceiverList = forwardRef<ReceiverListHandle, ReceiverListProps>(
               <ReceiverAvatar item={item} />
 
               {/* Label */}
-              <span className="truncate text-[15px] font-semibold text-[#1d1c1d]">
+              <span className={`truncate text-[15px] font-semibold ${item.id === "__new_agent__" ? "text-[#1264a3]" : "text-[#1d1c1d]"}`}>
                 {item.label}
               </span>
 

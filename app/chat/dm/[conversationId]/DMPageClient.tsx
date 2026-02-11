@@ -3,6 +3,7 @@
 import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MessageList } from "@/components/chat/MessageList";
 import { useSupabase } from "@/components/providers/SupabaseProvider";
+import { useUnread } from "@/components/providers/UnreadProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import { useConversationById } from "@/lib/hooks/useConversation";
 import { useMessages } from "@/lib/hooks/useMessages";
@@ -28,6 +29,7 @@ export default function DMPageClient({
 }) {
   const supabase = useSupabase();
   const { user } = useUser();
+  const { markAsRead } = useUnread();
   const { conversation, loading: convLoading } =
     useConversationById(conversationId);
   const {
@@ -35,6 +37,12 @@ export default function DMPageClient({
     loading: msgsLoading,
     sendMessage,
   } = useMessages(conversation?.id ?? null);
+
+  // Mark the DM as read on mount (conversationId is available immediately)
+  useEffect(() => {
+    markAsRead(conversationId);
+  }, [conversationId, markAsRead]);
+
   const [otherUser, setOtherUser] = useState<Pick<
     User,
     "id" | "username" | "avatar_url"

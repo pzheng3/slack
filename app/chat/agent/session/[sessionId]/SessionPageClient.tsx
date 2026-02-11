@@ -2,6 +2,7 @@
 
 import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MessageList } from "@/components/chat/MessageList";
+import { useUnread } from "@/components/providers/UnreadProvider";
 import { useSessionChat } from "@/lib/hooks/useSessionChat";
 import { consumePendingPrompt } from "@/lib/pending-prompt";
 import Image from "next/image";
@@ -27,6 +28,12 @@ export default function SessionPageClient({
 }) {
   const { messages, loading, streaming, sendMessage, agent, conversation } =
     useSessionChat(sessionId);
+  const { markAsRead } = useUnread();
+
+  // Mark the session as read on mount (sessionId === conversationId)
+  useEffect(() => {
+    markAsRead(sessionId);
+  }, [sessionId, markAsRead]);
 
   const sessionName = conversation?.name || "Agent Session";
 

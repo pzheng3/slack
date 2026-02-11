@@ -2,6 +2,7 @@
 
 import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MessageList } from "@/components/chat/MessageList";
+import { useUnread } from "@/components/providers/UnreadProvider";
 import { useAgentAutoReply } from "@/lib/hooks/useAgentAutoReply";
 import { useChannelConversation } from "@/lib/hooks/useConversation";
 import { useMessages } from "@/lib/hooks/useMessages";
@@ -34,6 +35,14 @@ export default function ChannelPageClient({ name }: { name: string }) {
     name,
     messages
   );
+  const { markAsRead } = useUnread();
+
+  // Mark the channel as read once the conversation resolves
+  useEffect(() => {
+    if (!convLoading && conversation) {
+      markAsRead(conversation.id);
+    }
+  }, [convLoading, conversation, markAsRead]);
 
   /**
    * Send the user's message and then trigger any applicable agent auto-replies.

@@ -1,74 +1,55 @@
 import type { MutableRefObject } from "react";
 import { ReactRenderer } from "@tiptap/react";
 import type { SuggestionOptions, SuggestionProps } from "@tiptap/suggestion";
+import { PluginKey } from "@tiptap/pm/state";
 import {
-  SlashCommandList,
-  type SlashCommandListHandle,
-  type SlashCommandListProps,
-} from "@/components/chat/SlashCommandList";
-import type { SlashCommandItem } from "@/lib/types";
+  ChannelList,
+  type ChannelListHandle,
+  type ChannelListProps,
+} from "@/components/chat/ChannelList";
+import type { MentionItem } from "@/lib/hooks/useMentionSuggestions";
 
 /**
- * Factory that creates the Tiptap `suggestion` config for the slash
- * command extension. Mirrors the pattern from `mention-suggestion.ts`.
- *
- * The SlashCommandList component handles its own filtering and tab logic,
- * so we always pass the **full** item list plus the raw query string.
- *
- * @param getItems - Callback that returns the current list of all slash command items
- * @param getRecentIds - Callback that returns the current recently-used item ids
- * @param recordRecent - Callback to record an item as recently used
- * @param isOpenRef - Mutable ref that tracks whether the slash popup is open,
- *                    so the editor can skip its Enter-to-send behaviour
- * @param options - Optional configuration
- * @param options.placement - Whether the popup appears "above" (default) or "below" the cursor
- * @returns A Suggestion options object for the custom slash command extension
+ * Unique plugin key for the # channel suggestion.
+ * Without this, both the @mention and #channel suggestion plugins would share
+ * the default `MentionPluginKey` from `@tiptap/extension-mention`, causing
+ * their ProseMirror plugin state to collide.
  */
-export function createSlashSuggestion(
-  getItems: () => SlashCommandItem[],
-  getRecentIds: () => string[],
-  recordRecent: (id: string) => void,
+const ChannelMentionPluginKey = new PluginKey("channelMention");
+
+/**
+ * Factory that creates the Tiptap `suggestion` config for the # channel
+ * mention extension. Works like `createMentionSuggestion` but triggers
+ * on `#` and renders the simpler ChannelList component.
+ *
+ * @param getChannels - Callback that returns the current list of channel items
+ * @param isOpenRef - Mutable ref that tracks whether the popup is open,
+ *                    so the editor can skip its Enter-to-send behaviour
+ * @returns A Suggestion options object for the channel mention extension
+ */
+export function createChannelSuggestion(
+  getChannels: () => MentionItem[],
   isOpenRef: MutableRefObject<boolean>,
-  options?: { placement?: "above" | "below" }
+  options?: { placement?: "above" | "below"; onOpen?: (item: MentionItem) => void }
 ): Omit<SuggestionOptions, "editor"> {
   const placement = options?.placement ?? "above";
+  const onOpen = options?.onOpen;
   return {
-    char: "/",
+    char: "#",
+    pluginKey: ChannelMentionPluginKey,
     allowSpaces: false,
-    /**
-     * Only trigger at the start of a line or after whitespace.
-     * This prevents the menu from appearing inside URLs like https://...
-     */
-    allow: ({ state, range }) => {
-      const $from = state.doc.resolve(range.from);
-      const textBefore = $from.parent.textBetween(
-        0,
-        $from.parentOffset,
-        undefined,
-        "\ufffc"
-      );
-      // Allow if `/` is at position 0 in the node, or preceded by whitespace
-      const charBefore = textBefore.slice(-1);
-      return (
-        $from.parentOffset === 0 ||
-        charBefore === "" ||
-        /\s/.test(charBefore)
-      );
-    },
 
     /**
-     * Return the full item list — filtering is done inside SlashCommandList.
+     * Return the full channel list — filtering is done inside ChannelList.
      */
-    items: () => getItems(),
+    items: () => getChannels(),
 
     /**
-     * Render callbacks that mount/position/unmount the SlashCommandList component.
+     * Render callbacks that mount/position/unmount the ChannelList component.
      */
     render: () => {
-      let renderer: ReactRenderer<
-        SlashCommandListHandle,
-        SlashCommandListProps
-      > | null = null;
+      let renderer: ReactRenderer<ChannelListHandle, ChannelListProps> | null =
+        null;
       let popup: HTMLDivElement | null = null;
       let clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
       let resizeHandler: (() => void) | null = null;
@@ -101,13 +82,12 @@ export function createSlashSuggestion(
          */
         onStart: (props: SuggestionProps) => {
           isOpenRef.current = true;
-          renderer = new ReactRenderer(SlashCommandList, {
+          renderer = new ReactRenderer(ChannelList, {
             props: {
-              items: props.items as SlashCommandItem[],
+              items: props.items as MentionItem[],
               query: props.query,
               command: props.command,
-              recentIds: getRecentIds(),
-              onRecordRecent: recordRecent,
+              onOpen,
             },
             editor: props.editor,
           });
@@ -122,7 +102,7 @@ export function createSlashSuggestion(
           latestClientRect = props.clientRect ?? null;
           updatePosition(popup, latestClientRect, placement);
 
-          // Reposition on window resize so the popup tracks the cursor.
+          // Reposition on window resize
           resizeHandler = () => updatePosition(popup, latestClientRect, placement);
           window.addEventListener("resize", resizeHandler);
 
@@ -142,11 +122,10 @@ export function createSlashSuggestion(
          */
         onUpdate: (props: SuggestionProps) => {
           renderer?.updateProps({
-            items: props.items as SlashCommandItem[],
+            items: props.items as MentionItem[],
             query: props.query,
             command: props.command,
-            recentIds: getRecentIds(),
-            onRecordRecent: recordRecent,
+            onOpen,
           });
 
           latestClientRect = props.clientRect ?? null;
@@ -154,7 +133,7 @@ export function createSlashSuggestion(
         },
 
         /**
-         * Forward keyboard events to the SlashCommandList for navigation.
+         * Forward keyboard events to the ChannelList for navigation.
          */
         onKeyDown: (props: { event: KeyboardEvent }) => {
           if (props.event.key === "Escape") {
@@ -178,12 +157,6 @@ export function createSlashSuggestion(
 
 /**
  * Position the popup element above or below the cursor rect.
- * On narrow viewports the left edge is clamped so the menu
- * stays fully visible with a small margin.
- *
- * @param popup - The popup DOM element
- * @param clientRect - Getter that returns the cursor bounding rect
- * @param placement - "above" positions the popup above the cursor, "below" positions it below
  */
 function updatePosition(
   popup: HTMLDivElement | null,
@@ -195,10 +168,9 @@ function updatePosition(
   const rect = typeof clientRect === "function" ? clientRect() : null;
   if (!rect) return;
 
-  const MARGIN = 16; // px from viewport edges
+  const MARGIN = 16;
   const popupWidth = popup.offsetWidth || 0;
 
-  // Clamp left so the popup doesn't overflow the right edge of the viewport
   let left = rect.left;
   if (left + popupWidth > window.innerWidth - MARGIN) {
     left = Math.max(MARGIN, window.innerWidth - MARGIN - popupWidth);

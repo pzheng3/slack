@@ -1,16 +1,26 @@
 /**
- * Utility for extracting slash command / skill instruction bodies from
+ * Utility for extracting @mention contexts and /command instructions from
  * message HTML and building AI-friendly content.
  *
  * The display HTML (stored in DB) keeps the styled `<span>` tags so
  * the message list renders them as chips. When sending to the AI model,
- * we parse out the `data-body` instruction text and prepend it clearly
- * so the model follows the prompt.
+ * we parse the HTML and build a structured prompt:
  *
- * Cross-entity context: when a message contains an `@entity /command`
- * pattern (e.g. `@watercooler /summarize`), the system detects the
- * @mention preceding the slash command and fetches messages from that
- * entity to inject as context for the AI model.
+ * 1. **@mentions → context**: Every `@mention` pulls the conversation
+ *    history from that entity (channel, DM, or agent session) and injects
+ *    it as context for the AI.
+ * 2. **`/commands` → instructions**: Every `/command` or `/skill` chip
+ *    adds its instruction body to the prompt.
+ * 3. **User text**: Whatever the user typed after the chips.
+ *
+ * These are independent building blocks — you can use mentions without
+ * commands, commands without mentions, or both together. Multiple
+ * mentions and multiple commands are all supported:
+ *
+ *   `@general @random /summarize /draft tell me more`
+ *   → context from #general + context from #random
+ *   + /summarize instructions + /draft instructions
+ *   + "tell me more"
  */
 
 /* ------------------------------------------------------------------ */
@@ -19,7 +29,8 @@
 
 /**
  * Represents a reference to another entity (channel, DM, agent session)
- * extracted from an @mention that precedes a slash command.
+ * extracted from an @mention in the message. Each mention's conversation
+ * history will be fetched and injected as context for the AI.
  */
 export interface EntityReference {
   /** The mention category: "channel", "agent", "people", "app" */
@@ -35,57 +46,83 @@ export interface EntityReference {
 /* ------------------------------------------------------------------ */
 
 /**
- * Parse message HTML and extract @mention entities that are paired with
- * a slash command. This detects the `@entity /command` pattern so the
- * caller can fetch messages from the referenced entity and inject them
- * as context for the AI model.
+ * Parse message HTML and extract ALL @mention entities. Every mention
+ * represents an entity whose conversation history should be pulled in
+ * as context for the AI — they are independent of slash commands.
  *
- * Only mentions that directly precede a slash command (possibly separated
- * by whitespace) are extracted — standalone mentions are ignored.
+ * Supported patterns:
+ * - `@general` — context from #general
+ * - `@general @random` — context from both channels
+ * - `@general /summarize` — context + command (independent)
+ * - `@elon-musk @general /draft /summarize explain` — all combine
+ *
+ * "app" category mentions are skipped since they have no conversation
+ * history to fetch.
  *
  * @param html - Raw HTML content from the Tiptap editor
- * @returns Array of entity references found paired with slash commands
+ * @returns Array of entity references found in the message
  */
 export function extractEntityReferences(html: string): EntityReference[] {
-  // Quick bail-outs
   if (!html.includes('data-type="mention"')) return [];
-  if (!html.includes('data-type="slash-command"')) return [];
   if (typeof window === "undefined") return [];
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
   const refs: EntityReference[] = [];
-  const slashNodes = doc.querySelectorAll('span[data-type="slash-command"]');
+  const seen = new Set<string>();
+  const mentionNodes = doc.querySelectorAll('span[data-type="mention"]');
 
-  slashNodes.forEach((slashNode) => {
-    // Walk backwards from the slash command node to find the nearest mention.
-    // Skip whitespace-only text nodes between them.
-    let prev: Node | null = slashNode.previousSibling;
-    while (prev && prev.nodeType === Node.TEXT_NODE && !prev.textContent?.trim()) {
-      prev = prev.previousSibling;
-    }
+  mentionNodes.forEach((node) => {
+    const dataId = node.getAttribute("data-id") || "";
+    // Strip the leading "@" (people/agent) or "#" (channel) prefix
+    const label = (node.textContent || "").replace(/^[@#]/, "");
+    const colonIdx = dataId.indexOf(":");
 
-    if (
-      prev &&
-      prev.nodeType === Node.ELEMENT_NODE &&
-      (prev as Element).getAttribute("data-type") === "mention"
-    ) {
-      const dataId = (prev as Element).getAttribute("data-id") || "";
-      const label = (prev as Element).textContent?.replace(/^@/, "") || "";
-      const colonIdx = dataId.indexOf(":");
+    if (colonIdx <= 0) return;
 
-      if (colonIdx > 0) {
-        refs.push({
-          category: dataId.slice(0, colonIdx),
-          entityId: dataId.slice(colonIdx + 1),
-          label,
-        });
-      }
+    const category = dataId.slice(0, colonIdx);
+
+    // Skip "app" mentions — they have no conversation history
+    if (category === "app") return;
+
+    if (!seen.has(dataId)) {
+      seen.add(dataId);
+      refs.push({
+        category,
+        entityId: dataId.slice(colonIdx + 1),
+        label,
+      });
     }
   });
 
   return refs;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Skill Name Extraction (client-side)                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Extract activated skill names from message HTML.
+ * Looks for slash command chip spans with data-id="skill-*"
+ * and extracts the skill name (e.g. "skill-code-reviewer" → "code-reviewer").
+ *
+ * This is the client-side equivalent of the server-side extractSkillNames
+ * in the agent-chat API route, used to preserve skill detection after
+ * buildAIContent converts HTML to plain text.
+ *
+ * @param html - The raw HTML content of the message
+ * @returns Array of skill names found in the message
+ */
+export function extractSkillNames(html: string): string[] {
+  const skills: string[] = [];
+  const regex = /data-id="skill-([^"]+)"/g;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    skills.push(match[1]);
+  }
+  return [...new Set(skills)];
 }
 
 /* ------------------------------------------------------------------ */
@@ -98,6 +135,8 @@ export interface EntityContext {
   label: string;
   /** Category of the entity ("channel", "agent", "people") */
   category: string;
+  /** The entity's unique identifier (mirrors EntityReference.entityId) */
+  entityId: string;
   /** Formatted plain-text messages from the entity */
   messages: string;
 }
@@ -204,6 +243,7 @@ export async function fetchEntityContext(
   return {
     label: ref.label,
     category: ref.category,
+    entityId: ref.entityId,
     messages: formatted,
   };
 }
@@ -213,88 +253,113 @@ export async function fetchEntityContext(
 /* ------------------------------------------------------------------ */
 
 /**
- * Parse message HTML, extract any slash-command instruction bodies,
- * and return a plain-text version suitable for the AI model.
+ * Parse message HTML, extract @mention contexts and /command instructions,
+ * and return a structured plain-text prompt for the AI model.
  *
- * - If the HTML contains no slash-command nodes, it is returned as-is.
- * - If it contains one or more, the instruction bodies are prepended
- *   and the remaining user text is appended.
+ * The prompt is assembled from three independent layers:
+ * 1. **Entity contexts** (from @mentions) — conversation histories
+ * 2. **Command instructions** (from /commands) — task instructions
+ * 3. **User text** — whatever the user typed alongside the chips
  *
- * When `entityContext` is provided (messages fetched from a referenced
- * entity), they are injected into the prompt so the command operates
- * on the correct context rather than the current conversation.
+ * Any combination works: mentions only, commands only, or both together.
  *
  * @param html - Raw HTML content from the Tiptap editor
- * @param entityContext - Optional context from a referenced entity
- * @returns Content formatted for the AI model with instructions prepended
+ * @param entityContexts - Optional array of contexts from @mentioned entities
+ * @returns Content formatted for the AI model
  */
 export function buildAIContent(
   html: string,
-  entityContext?: { label: string; category: string; messages: string } | null
+  entityContexts?: EntityContext[] | null
 ): string {
-  // Quick bail-out — no slash command nodes in the HTML
-  if (!html.includes('data-type="slash-command"')) return html;
+  const hasMentions = html.includes('data-type="mention"');
+  const hasSlashCommands = html.includes('data-type="slash-command"');
+  const hasEntityContexts =
+    entityContexts && entityContexts.length > 0;
+
+  // Quick bail-out — nothing to process
+  if (!hasMentions && !hasSlashCommands && !hasEntityContexts) return html;
 
   // Guard against SSR (DOMParser is browser-only)
   if (typeof window === "undefined") return html;
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  const slashNodes = doc.querySelectorAll('span[data-type="slash-command"]');
-
-  if (slashNodes.length === 0) return html;
 
   const instructions: { label: string; body: string }[] = [];
 
-  slashNodes.forEach((node) => {
-    const label = node.getAttribute("data-label") || node.textContent || "";
-    const body = node.getAttribute("data-body") || "";
-    if (body.trim()) {
-      instructions.push({ label: label.trim(), body: body.trim() });
-    }
-    // Remove the node so we can isolate the user's own text
-    node.remove();
-  });
+  // Extract slash command instruction bodies and remove them from DOM
+  if (hasSlashCommands) {
+    const slashNodes = doc.querySelectorAll(
+      'span[data-type="slash-command"]'
+    );
 
-  // Also remove mention nodes that were paired with slash commands
-  // (they are part of the entity reference, not standalone mentions)
-  doc.querySelectorAll('span[data-type="mention"]').forEach((mention) => {
-    const dataId = mention.getAttribute("data-id") || "";
-    if (entityContext && dataId.includes(entityContext.category)) {
-      mention.remove();
-    }
-  });
+    slashNodes.forEach((node) => {
+      const label =
+        node.getAttribute("data-label") || node.textContent || "";
+      const body = node.getAttribute("data-body") || "";
+      if (body.trim()) {
+        instructions.push({ label: label.trim(), body: body.trim() });
+      }
+      // Remove the node so we can isolate the user's own text
+      node.remove();
+    });
+  }
 
-  // Nothing actionable — return original HTML
-  if (instructions.length === 0) return html;
+  // Remove mention nodes that resolved to entity contexts
+  // (their conversation history is injected separately)
+  if (hasEntityContexts) {
+    const entityIds = new Set(
+      entityContexts!.map((ec) => `${ec.category}:${ec.entityId}`)
+    );
 
-  // Remaining text is whatever the user typed after the command chip
+    doc
+      .querySelectorAll('span[data-type="mention"]')
+      .forEach((mention) => {
+        const dataId = mention.getAttribute("data-id") || "";
+        if (entityIds.has(dataId)) {
+          mention.remove();
+        }
+      });
+  }
+
+  // Nothing to inject — no instructions AND no entity contexts → return as-is
+  if (instructions.length === 0 && !hasEntityContexts) return html;
+
+  // Remaining text is whatever the user typed alongside the chips
   const userText = (doc.body.textContent || "").trim();
 
   // Build the AI-friendly content:
-  //   [Entity context from #channel / @session]
+  //   [Context from #channel1]       ← from @mentions
+  //   <messages>
+  //   [Context from @person]          ← from @mentions
   //   <messages>
   //
-  //   [/command instructions]
+  //   [/command instructions]         ← from /commands
   //   <body>
   //
-  //   <user's additional text>
+  //   <user's additional text>        ← typed text
   let result = "";
 
-  // Inject cross-entity context if available
-  if (entityContext?.messages) {
-    const entityLabel =
-      entityContext.category === "channel"
-        ? `#${entityContext.label}`
-        : `@${entityContext.label}`;
+  // Layer 1: Inject conversation history from all @mentioned entities
+  if (hasEntityContexts) {
+    for (const ec of entityContexts!) {
+      if (!ec.messages) continue;
 
-    result += `[Context from ${entityLabel}]\nBelow are the messages from ${entityLabel}. Use these as the context for the command that follows.\n\n${entityContext.messages}\n\n[End of ${entityLabel} context]\n\n`;
+      const entityLabel =
+        ec.category === "channel"
+          ? `#${ec.label}`
+          : `@${ec.label}`;
+
+      result += `[Context from ${entityLabel}]\nBelow are the messages from ${entityLabel}. Use them as context for your response.\n\n${ec.messages}\n\n[End of ${entityLabel} context]\n\n`;
+    }
   }
 
+  // Layer 2: Inject command/skill instruction bodies
   for (const { label, body } of instructions) {
     result += `[${label} instructions]\n${body}\n\n`;
   }
 
+  // Layer 3: Append the user's own text
   if (userText) {
     result += userText;
   }

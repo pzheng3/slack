@@ -202,19 +202,21 @@ export function Sidebar({
           </SidebarSection>
         </ScrollArea>
 
-        {/* Resize handle — right edge */}
-        <div
-          onPointerDown={handleResizeStart}
-          className="
-            absolute right-0 top-0 z-10 hidden h-full w-[5px] cursor-col-resize
-            lg:block
-            after:absolute after:inset-y-0 after:left-1/2 after:-translate-x-1/2
-            after:w-px after:bg-transparent after:transition-colors after:duration-150
-            hover:after:bg-white/30
-            active:after:bg-white/50
-          "
-        />
       </aside>
+
+      {/* Resize handle — straddles the sidebar right edge */}
+      <div
+        onPointerDown={handleResizeStart}
+        style={{ left: `${width - 3}px` }}
+        className="
+          absolute top-0 z-50 hidden h-full w-[7px] cursor-col-resize
+          lg:block
+          after:absolute after:inset-y-0 after:left-1/2 after:-translate-x-1/2
+          after:w-0 after:bg-blue-500 after:transition-all after:duration-150
+          hover:after:w-[3px]
+          active:after:w-[4px] active:after:bg-blue-500
+        "
+      />
 
       {/* Add Channel dialog */}
       <Dialog open={addChannelOpen} onOpenChange={setAddChannelOpen}>

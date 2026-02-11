@@ -2,12 +2,14 @@
 
 import type { Channel } from "@/lib/hooks/useChannels";
 import { useSupabase } from "@/components/providers/SupabaseProvider";
+import { useUnread } from "@/components/providers/UnreadProvider";
 import { prefetchChannel } from "@/lib/prefetch";
 import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback } from "react";
+import { UnreadBadge } from "./UnreadBadge";
 
 interface ChannelListProps {
   /** Callback to close the mobile sidebar on navigation */
@@ -28,6 +30,7 @@ interface ChannelListProps {
 export function ChannelList({ onNavigate, channels = [], onDeleteChannel }: ChannelListProps) {
   const pathname = usePathname();
   const supabase = useSupabase();
+  const { unreadCounts } = useUnread();
 
   /**
    * Prefetch channel data on hover so the page renders instantly on click.
@@ -76,6 +79,13 @@ export function ChannelList({ onNavigate, channels = [], onDeleteChannel }: Chan
                 {channel.name}
               </span>
             </Link>
+
+            {/* Unread badge — hidden when active or on hover (close button takes its place) */}
+            {!isActive && (unreadCounts[channel.id] ?? 0) > 0 && (
+              <span className="mr-2 group-hover:hidden">
+                <UnreadBadge count={unreadCounts[channel.id]} />
+              </span>
+            )}
 
             {/* Close button — visible on hover */}
             {onDeleteChannel && (

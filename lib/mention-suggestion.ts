@@ -19,12 +19,18 @@ import type { MentionItem } from "@/lib/hooks/useMentionSuggestions";
  * @param getItems - Callback that returns the current list of all mentionable items
  * @param isOpenRef - Mutable ref that tracks whether the mention popup is open,
  *                    so the editor can skip its Enter-to-send behaviour
+ * @param options - Optional configuration
+ * @param options.placement - Whether the popup appears "above" (default) or "below" the cursor
+ * @param options.onOpen - Called when the user presses Cmd+Return to navigate to the entity
  * @returns A Suggestion options object for `Mention.configure({ suggestion })`
  */
 export function createMentionSuggestion(
   getItems: () => MentionItem[],
-  isOpenRef: MutableRefObject<boolean>
+  isOpenRef: MutableRefObject<boolean>,
+  options?: { placement?: "above" | "below"; onOpen?: (item: MentionItem) => void }
 ): Omit<SuggestionOptions, "editor"> {
+  const placement = options?.placement ?? "above";
+  const onOpen = options?.onOpen;
   return {
     char: "@",
     allowSpaces: false,
@@ -84,22 +90,23 @@ export function createMentionSuggestion(
               items: props.items as MentionItem[],
               query: props.query,
               command: props.command,
+              onOpen,
             },
             editor: props.editor,
           });
 
           popup = document.createElement("div");
           popup.style.position = "absolute";
-          popup.style.zIndex = "50";
+          popup.style.zIndex = "101";
           document.body.appendChild(popup);
 
           popup.appendChild(renderer.element);
 
           latestClientRect = props.clientRect ?? null;
-          updatePosition(popup, latestClientRect);
+          updatePosition(popup, latestClientRect, placement);
 
           // Reposition on window resize so the popup tracks the cursor.
-          resizeHandler = () => updatePosition(popup, latestClientRect);
+          resizeHandler = () => updatePosition(popup, latestClientRect, placement);
           window.addEventListener("resize", resizeHandler);
 
           // Dismiss when clicking anywhere outside the popup.
@@ -123,10 +130,11 @@ export function createMentionSuggestion(
             items: props.items as MentionItem[],
             query: props.query,
             command: props.command,
+            onOpen,
           });
 
           latestClientRect = props.clientRect ?? null;
-          updatePosition(popup, latestClientRect);
+          updatePosition(popup, latestClientRect, placement);
         },
 
         /**
@@ -153,13 +161,18 @@ export function createMentionSuggestion(
 }
 
 /**
- * Position the popup element above the cursor rect.
+ * Position the popup element above or below the cursor rect.
  * On narrow viewports the left edge is clamped so the menu
  * stays fully visible with a small margin.
+ *
+ * @param popup - The popup DOM element
+ * @param clientRect - Getter that returns the cursor bounding rect
+ * @param placement - "above" positions the popup above the cursor, "below" positions it below
  */
 function updatePosition(
   popup: HTMLDivElement | null,
-  clientRect: (() => DOMRect | null) | null | undefined
+  clientRect: (() => DOMRect | null) | null | undefined,
+  placement: "above" | "below" = "above"
 ) {
   if (!popup || !clientRect) return;
 
@@ -176,6 +189,12 @@ function updatePosition(
   }
 
   popup.style.left = `${left}px`;
-  popup.style.top = `${rect.top + window.scrollY - 8}px`;
-  popup.style.transform = "translateY(-100%)";
+
+  if (placement === "below") {
+    popup.style.top = `${rect.bottom + window.scrollY + 8}px`;
+    popup.style.transform = "none";
+  } else {
+    popup.style.top = `${rect.top + window.scrollY - 8}px`;
+    popup.style.transform = "translateY(-100%)";
+  }
 }

@@ -314,7 +314,7 @@ export const SlashCommandList = forwardRef<
     : false;
 
   return (
-    <div className="relative w-[calc(100vw-2rem)] max-w-[575px] rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
+      <div className="relative w-[calc(100vw-2rem)] max-w-[575px] overflow-hidden rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
       {/* Tab bar */}
       <div className="flex overflow-x-auto border-b border-[rgba(29,28,29,0.13)] px-2 pt-2">
         {tabList.map((tab) => (
@@ -333,7 +333,7 @@ export const SlashCommandList = forwardRef<
       </div>
 
       {/* Item list — fixed height so switching tabs doesn't resize */}
-      <div ref={listRef} className="h-[320px] overflow-y-auto py-2">
+      <div ref={listRef} className="h-[320px] overflow-y-auto py-2 subtle-scrollbar">
         {visibleItems.length === 0 ? (
           <div className="flex h-full items-center justify-center text-[13px] text-[rgba(29,28,29,0.5)]">
             No results

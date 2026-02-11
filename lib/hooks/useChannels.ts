@@ -2,7 +2,7 @@
 
 import { useSupabase } from "@/components/providers/SupabaseProvider";
 import type { Conversation } from "@/lib/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { channelCache } from "./useConversation";
 
@@ -64,6 +64,52 @@ export function useChannels() {
   useEffect(() => {
     fetchChannels();
   }, [fetchChannels]);
+
+  /**
+   * Listen for "channel-created" custom events dispatched when a channel is
+   * created externally (e.g. by an agent tool call) so the sidebar updates.
+   */
+  useEffect(() => {
+    const handleCreated = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        id: string;
+        name: string;
+        created_at?: string;
+      };
+      setChannels((prev) => {
+        if (prev.some((c) => c.id === detail.id)) return prev;
+        return [
+          ...prev,
+          {
+            id: detail.id,
+            name: detail.name,
+            created_at: detail.created_at ?? new Date().toISOString(),
+          },
+        ];
+      });
+    };
+
+    window.addEventListener("channel-created", handleCreated);
+    return () => window.removeEventListener("channel-created", handleCreated);
+  }, []);
+
+  /**
+   * Listen for "channel-deleted" custom events dispatched when a channel is
+   * deleted externally (e.g. by an agent tool call) so the sidebar updates.
+   */
+  useEffect(() => {
+    const handleDeleted = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        channel_name: string;
+      };
+      setChannels((prev) =>
+        prev.filter((c) => c.name !== detail.channel_name)
+      );
+    };
+
+    window.addEventListener("channel-deleted", handleDeleted);
+    return () => window.removeEventListener("channel-deleted", handleDeleted);
+  }, []);
 
   /**
    * Create a new channel conversation in Supabase.

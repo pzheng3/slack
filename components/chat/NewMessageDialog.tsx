@@ -12,7 +12,10 @@ import { useUser } from "@/components/providers/UserProvider";
 import { useDM } from "@/lib/hooks/useDM";
 import { useAgentSessions } from "@/lib/hooks/useAgentSessions";
 import { useMentionSuggestions } from "@/lib/hooks/useMentionSuggestions";
+import { useMentionNavigation } from "@/lib/hooks/useMentionNavigation";
 import { createMentionSuggestion } from "@/lib/mention-suggestion";
+import { ChannelMention } from "@/lib/channel-mention-extension";
+import { createChannelSuggestion } from "@/lib/channel-suggestion";
 import { useSlashCommands } from "@/lib/hooks/useSlashCommands";
 import { createSlashSuggestion } from "@/lib/slash-suggestion";
 import { SlashCommand } from "@/lib/slash-command-extension";
@@ -93,16 +96,37 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
   const receiverListRef = useRef<ReceiverListHandle>(null);
   const receiverWrapperRef = useRef<HTMLDivElement>(null);
 
-  /* ---- mention / slash suggestion setup (same as MessageComposer) -- */
+  /* ---- mention / channel / slash suggestion setup ------------------- */
 
   const mentionItems = useMentionSuggestions();
   const mentionItemsRef = useRef(mentionItems);
   mentionItemsRef.current = mentionItems;
   const mentionOpenRef = useRef(false);
 
+  /** Shared navigation handler for Cmd+Return in menus. */
+  const navigateToItem = useMentionNavigation();
+
   const mentionSuggestion = useMemo(
-    () => createMentionSuggestion(() => mentionItemsRef.current, mentionOpenRef),
-    []
+    () =>
+      createMentionSuggestion(() => mentionItemsRef.current, mentionOpenRef, {
+        placement: "below",
+        onOpen: navigateToItem,
+      }),
+    [navigateToItem]
+  );
+
+  /** Channel-only items for the # channel mention dropdown. */
+  const channelItemsRef = useRef<typeof mentionItems>([]);
+  channelItemsRef.current = mentionItems.filter((i) => i.category === "channel");
+  const channelOpenRef = useRef(false);
+
+  const channelSuggestion = useMemo(
+    () =>
+      createChannelSuggestion(() => channelItemsRef.current, channelOpenRef, {
+        placement: "below",
+        onOpen: navigateToItem,
+      }),
+    [navigateToItem]
   );
 
   /** Slash commands — show agent commands only when recipient is an agent. */
@@ -129,7 +153,8 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
         () => slashItemsRef.current,
         () => slashRecentIdsRef.current,
         slashRecordRecent,
-        slashOpenRef
+        slashOpenRef,
+        { placement: "below" }
       ),
     [slashRecordRecent]
   );
@@ -153,7 +178,31 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
       }),
       Mention.configure({
         HTMLAttributes: { class: "mention" },
+        /**
+         * Render mention text with category-aware prefix:
+         * channels → `#name`, everything else → `@name`.
+         */
+        renderText({ node, suggestion }) {
+          const id = (node.attrs.id as string) ?? "";
+          const prefix = id.startsWith("channel:") ? "#" : (suggestion?.char ?? "@");
+          return `${prefix}${node.attrs.label ?? node.attrs.id}`;
+        },
+        renderHTML({ node, suggestion }) {
+          const id = (node.attrs.id as string) ?? "";
+          const prefix = id.startsWith("channel:") ? "#" : (suggestion?.char ?? "@");
+          return `${prefix}${node.attrs.label ?? node.attrs.id}`;
+        },
         suggestion: mentionSuggestion,
+      }),
+      ChannelMention.configure({
+        HTMLAttributes: { class: "channel-mention" },
+        renderText({ node }) {
+          return `#${node.attrs.label ?? node.attrs.id}`;
+        },
+        renderHTML({ node }) {
+          return `#${node.attrs.label ?? node.attrs.id}`;
+        },
+        suggestion: channelSuggestion,
       }),
       SlashCommandNode,
       SlashCommand.configure({
@@ -170,7 +219,7 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
       },
       handleKeyDown(view, event) {
         if (event.key === "Enter" && !event.shiftKey) {
-          if (mentionOpenRef.current || slashOpenRef.current) {
+          if (mentionOpenRef.current || channelOpenRef.current || slashOpenRef.current) {
             return false;
           }
           const { $from } = view.state.selection;
@@ -314,7 +363,7 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
       // Escape — close receiver list first, then close dialog
       if (e.key === "Escape") {
         // Don't consume Escape if the mention/slash popup is open
-        if (mentionOpenRef.current || slashOpenRef.current) return;
+        if (mentionOpenRef.current || channelOpenRef.current || slashOpenRef.current) return;
         e.preventDefault();
         if (receiverOpen) {
           setReceiverOpen(false);
@@ -478,7 +527,7 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
           {/* To bar — acts as the search field */}
           <div ref={toBarRef} className="relative z-20">
             <div className="flex min-h-[38px] items-center rounded-t-lg bg-[#f8f8f8] px-2 py-1">
-              <div className="flex flex-1 items-center gap-1 min-w-0">
+              <div className="flex flex-1 items-center gap-2 min-w-0">
                 <span className="shrink-0 text-[15px] leading-[1.467] text-[rgba(29,28,29,0.5)]">
                   To:
                 </span>

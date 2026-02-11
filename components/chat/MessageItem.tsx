@@ -8,7 +8,11 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { AGENTS } from "@/lib/constants";
 import { useDM } from "@/lib/hooks/useDM";
+import { useEntityItems } from "@/components/providers/EntityLinkProvider";
 import type { MessageWithSender } from "@/lib/types";
+import type { MentionItem } from "@/lib/hooks/useMentionSuggestions";
+import type { Components } from "react-markdown";
+import { ToolCallStatusBlock, parseToolCalls } from "./ToolCallStatus";
 
 /** Set of AI character agent usernames for mention click navigation */
 const CHARACTER_AGENT_NAMES = new Set(AGENTS.map((a) => a.username));
@@ -165,6 +169,206 @@ function inlineSourceChips(content: string): string {
   return text;
 }
 
+/**
+ * Pattern matching Markdown links with the mention:// protocol.
+ * Captures: [1] display text, [2] category (people|channel|agent|app), [3] entity ID.
+ *
+ * We pre-convert these to raw HTML `<span>` tags so that `rehypeRaw` passes them
+ * through. This is more reliable than depending on react-markdown's URL transform
+ * to handle custom protocols.
+ */
+const MENTION_LINK_RE =
+  /\[([^\]]+)\]\(mention:\/\/(people|channel|agent|app)\/([^)]+)\)/g;
+
+/**
+ * Convert AI mention://  Markdown links into raw HTML mention spans.
+ *
+ * Transforms `[display](mention://category/entityId)` into
+ * `<span class="mention" data-type="mention" data-id="category:entityId">display</span>`.
+ *
+ * This runs BEFORE ReactMarkdown so `rehypeRaw` can process the resulting HTML.
+ *
+ * @param content - Raw message content that may contain mention:// links
+ * @returns Content with mention links replaced by HTML spans
+ */
+function convertMentionLinks(content: string): string {
+  return content.replace(
+    MENTION_LINK_RE,
+    (_match, display: string, category: string, entityId: string) => {
+      const safeDisplay = display
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+      return (
+        `<span class="mention" data-type="mention" ` +
+        `data-id="${category}:${entityId}">${safeDisplay}</span>`
+      );
+    }
+  );
+}
+
+/**
+ * Escape special regex characters in a string.
+ *
+ * @param s - The string to escape
+ * @returns The escaped string safe for use in a RegExp constructor
+ */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * HTML-escape a plain text string for safe embedding in HTML attributes/content.
+ *
+ * @param s - The string to escape
+ * @returns The HTML-safe string
+ */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Fallback pass that catches entity names the AI failed to format as
+ * `mention://` links. This handles the common case where the AI outputs
+ * **bold names** or plain names instead of Markdown mention links.
+ *
+ * Strategy:
+ * 1. Split content around existing `<span class="mention"…>` tags so
+ *    already-linked entities are never touched.
+ * 2. In remaining segments, replace known entity names (longest-first)
+ *    with mention span HTML. Matches both `**name**` and plain `name`.
+ * 3. Uses exact case-sensitive matching with boundary checks.
+ *
+ * @param content  - Content that already went through `convertMentionLinks`
+ * @param entities - Known entities from the workspace
+ * @returns Content with missed entity references converted to mention spans
+ */
+function linkifyMissedEntities(
+  content: string,
+  entities: MentionItem[]
+): string {
+  if (!entities.length) return content;
+
+  // Sort longest-first so "Steve Jobs" matches before "Steve"
+  const sorted = [...entities].sort(
+    (a, b) => b.label.length - a.label.length
+  );
+
+  // Split content into mention-span segments and raw-text segments.
+  // Mention spans are preserved verbatim; only raw segments are scanned.
+  const MENTION_SPAN_RE =
+    /<span\s[^>]*class="mention"[^>]*>[\s\S]*?<\/span>/g;
+
+  const spans: { start: number; end: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = MENTION_SPAN_RE.exec(content)) !== null) {
+    spans.push({ start: m.index, end: m.index + m[0].length });
+  }
+
+  // If no existing mentions, process the whole string
+  if (spans.length === 0) {
+    return replaceEntitiesInSegment(content, sorted);
+  }
+
+  // Build output by interleaving raw segments (processed) and spans (kept)
+  const parts: string[] = [];
+  let cursor = 0;
+  for (const span of spans) {
+    if (cursor < span.start) {
+      parts.push(replaceEntitiesInSegment(content.slice(cursor, span.start), sorted));
+    }
+    parts.push(content.slice(span.start, span.end));
+    cursor = span.end;
+  }
+  if (cursor < content.length) {
+    parts.push(replaceEntitiesInSegment(content.slice(cursor), sorted));
+  }
+
+  return parts.join("");
+}
+
+/**
+ * Replace known entity names in a raw text/markdown segment with mention
+ * span HTML. Matches both markdown bold (`**name**`) and plain name text.
+ *
+ * @param segment  - A content segment with no existing mention spans
+ * @param entities - Sorted entities (longest label first)
+ * @returns The segment with entity names replaced by mention HTML
+ */
+function replaceEntitiesInSegment(
+  segment: string,
+  entities: MentionItem[]
+): string {
+  // Build replacements in a non-overlapping way using a single scan approach:
+  // collect all match positions, resolve overlaps, then splice.
+  const replacements: { start: number; end: number; html: string }[] = [];
+
+  for (const entity of entities) {
+    if (entity.label.length < 2) continue;
+
+    const escaped = escapeRegExp(entity.label);
+    const prefix = entity.category === "channel" ? "#" : "@";
+    const spanHtml =
+      `<span class="mention" data-type="mention" ` +
+      `data-id="${entity.category}:${entity.id}">${escapeHtml(prefix + entity.label)}</span>`;
+
+    // Try bold variant first: **name**
+    const boldRe = new RegExp(`\\*\\*${escaped}\\*\\*`, "g");
+    let bm: RegExpExecArray | null;
+    while ((bm = boldRe.exec(segment)) !== null) {
+      const start = bm.index;
+      const end = start + bm[0].length;
+      if (!overlaps(replacements, start, end)) {
+        replacements.push({ start, end, html: spanHtml });
+      }
+    }
+
+    // Plain name with boundary checks (not preceded by word char, @, #;
+    // not followed by word char). This avoids matching inside URLs or
+    // partial words.
+    const plainRe = new RegExp(`(?<![\\w@#/])${escaped}(?!\\w)`, "g");
+    let pm: RegExpExecArray | null;
+    while ((pm = plainRe.exec(segment)) !== null) {
+      const start = pm.index;
+      const end = start + pm[0].length;
+      if (!overlaps(replacements, start, end)) {
+        replacements.push({ start, end, html: spanHtml });
+      }
+    }
+  }
+
+  if (replacements.length === 0) return segment;
+
+  // Sort by start position descending so splicing doesn't shift indices
+  replacements.sort((a, b) => b.start - a.start);
+  let result = segment;
+  for (const r of replacements) {
+    result = result.slice(0, r.start) + r.html + result.slice(r.end);
+  }
+  return result;
+}
+
+/**
+ * Check if a proposed [start, end) range overlaps with any existing replacement.
+ *
+ * @param existing - Already-collected replacement ranges
+ * @param start    - Proposed start index
+ * @param end      - Proposed end index
+ * @returns True if there is an overlap
+ */
+function overlaps(
+  existing: { start: number; end: number }[],
+  start: number,
+  end: number
+): boolean {
+  return existing.some((r) => start < r.end && end > r.start);
+}
+
 interface MessageItemProps {
   message: MessageWithSender;
   /** If true, renders a compact style (no avatar/name) for consecutive messages from the same sender */
@@ -207,41 +411,39 @@ function isHtmlContent(content: string): boolean {
 function MessageBody({ content }: { content: string }) {
   const router = useRouter();
   const { findOrCreateDM } = useDM();
+  const allEntities = useEntityItems();
 
   /**
-   * Replace citation markers with inline chip HTML (memoized).
-   * If the content has no sources, this returns the original string unchanged.
+   * Parse tool call metadata from the content (if any).
+   * Tool call entries are rendered as a separate status block above the text.
    */
-  const processedContent = useMemo(
-    () => inlineSourceChips(content),
+  const { toolCalls, cleanContent: contentWithoutToolCalls } = useMemo(
+    () => parseToolCalls(content),
     [content]
   );
 
   /**
-   * Handle click events delegated from the message body.
-   * If the target is a `.mention` span, parse its `data-id`
-   * (format: `category:entityId`) and navigate to the chat session.
+   * Content processing pipeline (memoized):
+   * 1. Replace citation markers with inline source chip HTML
+   * 2. Convert AI mention:// Markdown links into mention spans
+   * 3. Fallback: catch entity names the AI missed (bold or plain text)
    */
-  const handleClick = useCallback(
-    async (e: React.MouseEvent<HTMLDivElement>) => {
-      const target = (e.target as HTMLElement).closest?.(
-        "[data-type='mention']"
-      ) as HTMLElement | null;
-      if (!target) return;
+  const processedContent = useMemo(() => {
+    const withChips = inlineSourceChips(contentWithoutToolCalls);
+    const withMentionLinks = convertMentionLinks(withChips);
+    return linkifyMissedEntities(withMentionLinks, allEntities);
+  }, [contentWithoutToolCalls, allEntities]);
 
-      const raw = target.getAttribute("data-id");
-      if (!raw) return;
-
-      const colonIdx = raw.indexOf(":");
-      if (colonIdx === -1) return;
-
-      const category = raw.slice(0, colonIdx);
-      const entityId = raw.slice(colonIdx + 1);
-
+  /**
+   * Navigate to an entity's chat page based on category and id.
+   * Used by both the delegated click handler (for Tiptap HTML) and
+   * the inline click handlers on ReactMarkdown mention chips.
+   */
+  const navigateToEntity = useCallback(
+    async (category: string, entityId: string, displayLabel: string) => {
       switch (category) {
         case "channel": {
-          // entityId is the conversation UUID; label is the channel name
-          const label = target.textContent?.replace(/^@/, "") ?? "";
+          const label = displayLabel.replace(/^[#@]+/, "");
           router.push(`/chat/channel/${encodeURIComponent(label)}`);
           break;
         }
@@ -249,12 +451,9 @@ function MessageBody({ content }: { content: string }) {
           router.push(`/chat/agent/session/${entityId}`);
           break;
         case "people": {
-          // If the mentioned person is an AI character agent, navigate to agent chat
-          const mentionLabel = target.textContent?.replace(/^@/, "") ?? "";
+          const mentionLabel = displayLabel.replace(/^@/, "");
           if (CHARACTER_AGENT_NAMES.has(mentionLabel)) {
-            router.push(
-              `/chat/agent/${encodeURIComponent(mentionLabel)}`
-            );
+            router.push(`/chat/agent/${encodeURIComponent(mentionLabel)}`);
           } else {
             const convId = await findOrCreateDM(entityId);
             if (convId) router.push(`/chat/dm/${convId}`);
@@ -268,26 +467,85 @@ function MessageBody({ content }: { content: string }) {
     [router, findOrCreateDM]
   );
 
+  /**
+   * Handle click events delegated from the message body.
+   * Used for Tiptap HTML mentions (dangerouslySetInnerHTML branch).
+   * Parses `data-id` (format: `category:entityId`) and navigates.
+   */
+  const handleClick = useCallback(
+    async (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = (e.target as HTMLElement).closest?.(
+        "[data-type='mention'], [data-type='channelMention']"
+      ) as HTMLElement | null;
+      if (!target) return;
+
+      const raw = target.getAttribute("data-id");
+      if (!raw) return;
+
+      const colonIdx = raw.indexOf(":");
+      if (colonIdx === -1) return;
+
+      const category = raw.slice(0, colonIdx);
+      const entityId = raw.slice(colonIdx + 1);
+      const displayLabel = target.textContent ?? "";
+
+      await navigateToEntity(category, entityId, displayLabel);
+    },
+    [navigateToEntity]
+  );
+
+  /**
+   * Custom ReactMarkdown component overrides.
+   * Ensures external links open in a new tab.
+   */
+  const markdownComponents = useMemo<Components>(
+    () => ({
+      a: ({ href, children, ...props }) => (
+        <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+          {children}
+        </a>
+      ),
+    }),
+    []
+  );
+
   if (isHtmlContent(processedContent)) {
     return (
-      <div
-        className="rich-text break-words text-[15px] leading-[1.467] text-[var(--color-slack-text)]"
-        dangerouslySetInnerHTML={{ __html: processedContent }}
-        onClick={handleClick}
-      />
+      <>
+        {toolCalls.length > 0 && (
+          <ToolCallStatusBlock toolCalls={toolCalls} />
+        )}
+        <div
+          className="rich-text break-words text-[15px] leading-[1.467] text-[var(--color-slack-text)]"
+          dangerouslySetInnerHTML={{ __html: processedContent }}
+          onClick={handleClick}
+        />
+      </>
     );
   }
 
-  // Render as Markdown with rehype-raw so inline source chip HTML passes through
+  // Render as Markdown with rehype-raw so inline source chip HTML passes
+  // through. The custom `a` component converts mention:// links from the AI
+  // into interactive mention chips. The click handler on the wrapper enables
+  // navigation when chips are clicked.
   return (
-    <div className="rich-text break-words text-[15px] leading-[1.467] text-[var(--color-slack-text)]">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
+    <>
+      {toolCalls.length > 0 && (
+        <ToolCallStatusBlock toolCalls={toolCalls} />
+      )}
+      <div
+        className="rich-text break-words text-[15px] leading-[1.467] text-[var(--color-slack-text)]"
+        onClick={handleClick}
       >
-        {processedContent}
-      </ReactMarkdown>
-    </div>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={markdownComponents}
+        >
+          {processedContent}
+        </ReactMarkdown>
+      </div>
+    </>
   );
 }
 

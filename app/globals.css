@@ -221,6 +221,20 @@
   text-decoration: underline;
 }
 
+/* #channel mention chips */
+.channel-mention {
+  background-color: var(--color-slack-mention-bg);
+  color: var(--color-slack-mention);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 400;
+  cursor: pointer;
+}
+.channel-mention:hover {
+  background-color: rgba(29, 155, 209, 0.2);
+  text-decoration: underline;
+}
+
 /* /slash command & skill tags */
 .slash-command {
   background-color: rgba(111, 76, 255, 0.1);
