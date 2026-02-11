@@ -58,12 +58,27 @@ export function MessageList({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to streaming toggle
   }, [streaming]);
 
-  // Non-streaming: scroll to bottom when new messages arrive.
-  // Uses instant jump for session switches / first load (no visible animation)
-  // and smooth scroll for new messages within the same conversation.
-  // Sets scrollTop on the Radix viewport directly (instead of scrollIntoView)
-  // so that bottom padding is included and we reach the absolute bottom.
-  useEffect(() => {
+  /**
+   * Ref for the `requestAnimationFrame` id used by the session-switch
+   * scroll so we can cancel it if the component unmounts or re-renders
+   * before the callback fires.
+   */
+  const rafIdRef = useRef(0);
+
+  /**
+   * Non-streaming: scroll to bottom when new messages arrive.
+   *
+   * Uses `useLayoutEffect` so the scroll happens synchronously before the
+   * browser paints, giving accurate `scrollHeight` measurements and
+   * preventing a visible flash of wrong scroll position.
+   *
+   * For session switches / first load we jump instantly (no animation) and
+   * schedule a follow-up `requestAnimationFrame` callback to catch any late
+   * layout shifts (images loading, fonts rendering, Radix viewport resizing).
+   *
+   * For new messages within the same conversation we smooth-scroll.
+   */
+  useLayoutEffect(() => {
     if (streamingRef.current) return;
     if (messages.length === 0) {
       prevFirstMsgIdRef.current = null;
@@ -87,15 +102,59 @@ export function MessageList({
       return;
     }
 
-    const maxScroll = viewport.scrollHeight - viewport.clientHeight;
+    /** Jump the viewport to its maximum scroll offset. */
+    const scrollToMax = () => {
+      viewport.scrollTop = viewport.scrollHeight - viewport.clientHeight;
+    };
 
     if (isNewSession) {
-      // Session switch or first load — jump to absolute bottom
-      viewport.scrollTop = maxScroll;
+      // Session switch or first load — jump to absolute bottom immediately
+      scrollToMax();
+      // Follow-up after browser layout to catch any late content shifts
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = requestAnimationFrame(scrollToMax);
     } else {
       // New message in same conversation — smooth scroll to absolute bottom
+      const maxScroll = viewport.scrollHeight - viewport.clientHeight;
       viewport.scrollTo({ top: maxScroll, behavior: "smooth" });
     }
+
+    return () => cancelAnimationFrame(rafIdRef.current);
+  }, [messages.length, firstMsgId]);
+
+  /**
+   * Keep scroll pinned to the bottom while content resizes (e.g. images
+   * loading, lazy content appearing) — but only when NOT streaming.
+   *
+   * Uses a `ResizeObserver` on the viewport's inner content wrapper. If the
+   * viewport is already near the bottom (within 50 px tolerance) we snap it
+   * to the new maximum scroll offset. This avoids hijacking the user's
+   * scroll position if they intentionally scrolled up to read history.
+   */
+  useEffect(() => {
+    const bottom = bottomRef.current;
+    if (!bottom) return;
+
+    const viewport = bottom.closest(
+      '[data-slot="scroll-area-viewport"]'
+    ) as HTMLElement | null;
+    if (!viewport) return;
+
+    // Radix wraps children in a div inside the viewport — observe that
+    const content = viewport.firstElementChild;
+    if (!content) return;
+
+    const ro = new ResizeObserver(() => {
+      if (streamingRef.current) return;
+      const maxScroll = viewport.scrollHeight - viewport.clientHeight;
+      // Only pin if we're already near the bottom
+      if (maxScroll - viewport.scrollTop <= 50) {
+        viewport.scrollTop = maxScroll;
+      }
+    });
+
+    ro.observe(content);
+    return () => ro.disconnect();
   }, [messages.length, firstMsgId]);
 
   // Streaming: smart-scroll after every content update.

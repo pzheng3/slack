@@ -173,13 +173,6 @@ export default function DMPageClient({
             <span className="text-[18px] font-black leading-[1.33] text-[var(--color-slack-text)]">
               {displayName}
             </span>
-            <Image
-              src="/icons/chevron-down.svg"
-              alt=""
-              width={18}
-              height={18}
-              className="opacity-60"
-            />
           </div>
         </button>
       </div>

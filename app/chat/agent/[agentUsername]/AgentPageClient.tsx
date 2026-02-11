@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 /**
  * Agent chat page matching the Figma design.
- * Header shows agent avatar + name + chevron-down.
+ * Header shows agent avatar + name.
  *
  * Supports a "pending prompt" flow: when the user sends a message to a
  * character agent from the "Create New" dialog, the prompt is stored in
