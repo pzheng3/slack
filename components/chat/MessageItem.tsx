@@ -426,11 +426,18 @@ function MessageBody({ content }: { content: string }) {
    * Content processing pipeline (memoized):
    * 1. Replace citation markers with inline source chip HTML
    * 2. Convert AI mention:// Markdown links into mention spans
-   * 3. Fallback: catch entity names the AI missed (bold or plain text)
+   * 3. Fallback (AI/markdown only): catch entity names the AI missed
+   *
+   * Step 3 is skipped for Tiptap HTML because user messages already
+   * contain proper mention spans from the editor — running the fallback
+   * on HTML would risk corrupting attribute values that happen to
+   * contain entity names (e.g. `data-label="general"`).
    */
   const processedContent = useMemo(() => {
     const withChips = inlineSourceChips(contentWithoutToolCalls);
     const withMentionLinks = convertMentionLinks(withChips);
+    // Tiptap HTML already has proper mentions — skip the fallback
+    if (isHtmlContent(withMentionLinks)) return withMentionLinks;
     return linkifyMissedEntities(withMentionLinks, allEntities);
   }, [contentWithoutToolCalls, allEntities]);
 
