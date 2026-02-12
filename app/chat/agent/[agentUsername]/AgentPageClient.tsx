@@ -5,6 +5,7 @@ import { MessageList } from "@/components/chat/MessageList";
 import { useUnread } from "@/components/providers/UnreadProvider";
 import { AGENTS } from "@/lib/constants";
 import { useAgentChat } from "@/lib/hooks/useAgentChat";
+import { useScheduledMessages } from "@/lib/hooks/useScheduledMessages";
 import { consumePendingPrompt } from "@/lib/pending-prompt";
 import Image from "next/image";
 import { useEffect, useMemo, useRef } from "react";
@@ -29,6 +30,7 @@ export default function AgentPageClient({
   const { messages, loading, streaming, sendMessage, agent, conversation } =
     useAgentChat(agentUsername);
   const { markAsRead } = useUnread();
+  const { scheduleMessage } = useScheduledMessages();
 
   // Mark the agent conversation as read once it resolves
   useEffect(() => {
@@ -132,6 +134,10 @@ export default function AgentPageClient({
       {/* Composer — character agents get a people-style input field */}
       <MessageComposer
         onSend={sendMessage}
+        onSchedule={(content, sendAt) => {
+          if (!conversation) return;
+          scheduleMessage(content, sendAt, conversation.id, "agent", conversation.id, agentUsername);
+        }}
         disabled={loading || streaming}
         autoFocus
         defaultShowToolbar={isCharacterAgent}

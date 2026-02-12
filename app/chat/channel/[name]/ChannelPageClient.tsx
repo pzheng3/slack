@@ -6,6 +6,7 @@ import { useUnread } from "@/components/providers/UnreadProvider";
 import { useAgentAutoReply } from "@/lib/hooks/useAgentAutoReply";
 import { useChannelConversation } from "@/lib/hooks/useConversation";
 import { useMessages } from "@/lib/hooks/useMessages";
+import { useScheduledMessages } from "@/lib/hooks/useScheduledMessages";
 import { consumePendingPrompt } from "@/lib/pending-prompt";
 import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
@@ -36,6 +37,7 @@ export default function ChannelPageClient({ name }: { name: string }) {
     messages
   );
   const { markAsRead } = useUnread();
+  const { scheduleMessage } = useScheduledMessages();
 
   // Mark the channel as read once the conversation resolves
   useEffect(() => {
@@ -138,6 +140,10 @@ export default function ChannelPageClient({ name }: { name: string }) {
       {/* Composer */}
       <MessageComposer
         onSend={handleSend}
+        onSchedule={(content, sendAt) => {
+          if (!conversation) return;
+          scheduleMessage(content, sendAt, conversation.id, "channel", conversation.id, `#${name}`);
+        }}
         disabled={!conversation}
         autoFocus
       />

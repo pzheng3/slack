@@ -22,7 +22,14 @@ import { SlashCommand } from "@/lib/slash-command-extension";
 import { SlashCommandNode } from "@/lib/slash-command-node";
 import { ReceiverChip, type Recipient } from "@/components/chat/ReceiverChip";
 import { ReceiverList, type ReceiverListHandle } from "@/components/chat/ReceiverList";
+import { ScheduleDialog } from "@/components/chat/ScheduleDialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { setPendingPrompt } from "@/lib/pending-prompt";
+import { useScheduledMessages } from "@/lib/hooks/useScheduledMessages";
 import { AGENTS } from "@/lib/constants";
 
 /* ------------------------------------------------------------------ */
@@ -81,6 +88,7 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
   const { user } = useUser();
   const { findOrCreateDM } = useDM();
   const { createSession } = useAgentSessions();
+  const { scheduleMessage } = useScheduledMessages();
 
   /* ---- state ------------------------------------------------------- */
 
@@ -333,6 +341,114 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
       setSending(false);
     }
   }, [editor, recipient, user, sending, onClose, router, createSession, findOrCreateDM]);
+
+  /**
+   * Schedule the current editor content to be sent at a future time.
+   * Determines the correct recipient context and stores the scheduled message.
+   */
+  const handleSchedule = useCallback(
+    async (sendAt: Date) => {
+      if (!editor || !recipient || !user || sending) return;
+      const text = editor.getText().trim();
+      if (!text) return;
+
+      const html = editor.getHTML();
+      setSending(true);
+
+      try {
+        if (recipient.type === "agent" && recipient.id === "__new_agent__") {
+          // Schedule for a new agent session — will be created at send time
+          const sessionName =
+            text.length > 60 ? text.slice(0, 60) + "..." : text;
+          await scheduleMessage(
+            html,
+            sendAt,
+            null,
+            "new_agent",
+            recipient.id,
+            sessionName
+          );
+        } else {
+          // For existing conversations, resolve conversation_id first
+          let conversationId: string | null = null;
+          let recipientLabel = recipient.label;
+
+          switch (recipient.type) {
+            case "channel":
+              conversationId = recipient.id;
+              recipientLabel = `#${recipient.label}`;
+              break;
+            case "agent":
+              conversationId = recipient.id;
+              break;
+            case "people":
+              if (CHARACTER_AGENT_USERNAMES.has(recipient.label)) {
+                // Character agents don't have a direct conversation_id here
+                conversationId = null;
+              } else {
+                conversationId = await findOrCreateDM(recipient.id);
+              }
+              break;
+          }
+
+          await scheduleMessage(
+            html,
+            sendAt,
+            conversationId,
+            recipient.type,
+            recipient.id,
+            recipientLabel
+          );
+        }
+
+        editor.commands.clearContent();
+        onClose();
+      } catch (err) {
+        console.error("Failed to schedule message:", err);
+      } finally {
+        setSending(false);
+      }
+    },
+    [editor, recipient, user, sending, onClose, scheduleMessage, findOrCreateDM]
+  );
+
+  /**
+   * Send the current message in incognito mode.
+   * Creates a new agent session with "(incognito)" suffix in the name
+   * and navigates to it. Only available for agent-type recipients.
+   */
+  const handleIncognitoSend = useCallback(
+    async () => {
+      if (!editor || !recipient || !user || sending) return;
+      if (recipient.type !== "agent") return;
+
+      const text = editor.getText().trim();
+      if (!text) return;
+
+      const html = editor.getHTML();
+      setSending(true);
+
+      try {
+        const sessionName =
+          (text.length > 60 ? text.slice(0, 60) + "..." : text) + " (incognito)";
+        const sessionId = await createSession(sessionName, {
+          skipGreeting: true,
+          skipNavigation: true,
+        });
+
+        if (sessionId) {
+          setPendingPrompt(sessionId, html);
+          onClose();
+          router.push(`/chat/agent/session/${sessionId}`);
+        }
+      } catch (err) {
+        console.error("Failed to start incognito session:", err);
+      } finally {
+        setSending(false);
+      }
+    },
+    [editor, recipient, user, sending, onClose, router, createSession]
+  );
 
   // Keep ref in sync so handleKeyDown can call the latest handleSend
   handleSendRef.current = handleSend;
@@ -612,6 +728,9 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
               <NewMessageSendButton
                 isActive={isActive}
                 onSend={handleSend}
+                onSchedule={handleSchedule}
+                onIncognito={handleIncognitoSend}
+                showIncognito={recipient?.type === "agent" && recipient?.id === "__new_agent__"}
               />
             </div>
           </div>
@@ -717,61 +836,117 @@ function DialogAttachButton() {
 /**
  * The split send button for the new message dialog.
  * Green when active (has content + recipient), gray when disabled.
+ * The chevron opens a popover with "Schedule for later" and optionally
+ * "Incognito mode" (when the recipient is an agent).
  */
 function NewMessageSendButton({
   isActive,
   onSend,
+  onSchedule,
+  onIncognito,
+  showIncognito = false,
 }: {
   isActive: boolean;
   onSend: () => void;
+  onSchedule: (sendAt: Date) => void;
+  onIncognito: () => void;
+  showIncognito?: boolean;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+
   return (
-    <div className="relative flex h-7 w-[55px]">
-      {/* Send button */}
-      <button
-        className={`flex items-center justify-center rounded-l-[4px] px-2 py-0.5 ${
-          isActive ? "bg-[var(--color-slack-send-active)]" : ""
-        }`}
-        onClick={onSend}
-        disabled={!isActive}
-      >
-        <Image
-          src="/icons/send-fill.svg"
-          alt="Send"
-          width={16}
-          height={16}
-          className={isActive ? "brightness-0 invert" : "opacity-40"}
-        />
-      </button>
+    <>
+      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <div className="relative flex h-7 w-[55px]">
+          {/* Send button */}
+          <button
+            className={`flex items-center justify-center rounded-l-[4px] px-2 py-0.5 ${
+              isActive ? "bg-[var(--color-slack-send-active)]" : ""
+            }`}
+            onClick={onSend}
+            disabled={!isActive}
+          >
+            <Image
+              src="/icons/send-fill.svg"
+              alt="Send"
+              width={16}
+              height={16}
+              className={isActive ? "brightness-0 invert" : "opacity-40"}
+            />
+          </button>
 
-      {/* Divider */}
-      <div
-        className={`flex h-7 items-center ${
-          isActive ? "bg-[var(--color-slack-send-active)]" : ""
-        }`}
-      >
-        <div
-          className={`h-5 w-px ${
-            isActive ? "bg-white/50" : "bg-[rgba(29,28,29,0.06)]"
-          }`}
-        />
-      </div>
+          {/* Divider */}
+          <div
+            className={`flex h-7 items-center ${
+              isActive ? "bg-[var(--color-slack-send-active)]" : ""
+            }`}
+          >
+            <div
+              className={`h-5 w-px ${
+                isActive ? "bg-white/50" : "bg-[rgba(29,28,29,0.06)]"
+              }`}
+            />
+          </div>
 
-      {/* More options chevron */}
-      <button
-        className={`flex items-center justify-center rounded-r-[4px] px-1 py-0.5 ${
-          isActive ? "bg-[var(--color-slack-send-active)]" : ""
-        }`}
-        disabled={!isActive}
-      >
-        <Image
-          src="/icons/chevron-down.svg"
-          alt="More"
-          width={15}
-          height={15}
-          className={isActive ? "brightness-0 invert" : "opacity-40"}
-        />
-      </button>
-    </div>
+          {/* More options chevron */}
+          <PopoverTrigger asChild>
+            <button
+              className={`flex items-center justify-center rounded-r-[4px] px-1 py-0.5 ${
+                isActive ? "bg-[var(--color-slack-send-active)]" : ""
+              }`}
+              disabled={!isActive}
+            >
+              <Image
+                src="/icons/chevron-down.svg"
+                alt="More"
+                width={15}
+                height={15}
+                className={isActive ? "brightness-0 invert" : "opacity-40"}
+              />
+            </button>
+          </PopoverTrigger>
+        </div>
+
+        <PopoverContent
+          side="bottom"
+          align="end"
+          sideOffset={4}
+          className="z-[200] w-[220px] p-1 shadow-lg"
+        >
+          {/* Schedule for later */}
+          <button
+            onClick={() => {
+              setMenuOpen(false);
+              setScheduleOpen(true);
+            }}
+            className="flex w-full items-center rounded-[4px] px-3 py-2 text-left text-[14px] text-[var(--color-slack-text)] hover:bg-[#f0f0f0] transition-colors"
+          >
+            Schedule for later
+          </button>
+
+          {/* Incognito mode — only for agent recipients */}
+          {showIncognito && (
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                onIncognito();
+              }}
+              className="flex w-full items-center rounded-[4px] px-3 py-2 text-left text-[14px] text-[var(--color-slack-text)] hover:bg-[#f0f0f0] transition-colors"
+            >
+              Send incognito
+            </button>
+          )}
+        </PopoverContent>
+      </Popover>
+
+      {/* Schedule dialog — highZ so it renders above the NewMessageDialog overlay */}
+      <ScheduleDialog
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        onSchedule={onSchedule}
+        highZ
+      />
+    </>
   );
 }

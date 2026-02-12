@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
+import { ScheduleDialog } from "@/components/chat/ScheduleDialog";
 import { useMentionSuggestions } from "@/lib/hooks/useMentionSuggestions";
 import { useMentionNavigation } from "@/lib/hooks/useMentionNavigation";
 import { createMentionSuggestion } from "@/lib/mention-suggestion";
@@ -35,6 +36,12 @@ import { SlashCommandNode } from "@/lib/slash-command-node";
 interface MessageComposerProps {
   /** Called when the user sends a message (content is HTML) */
   onSend: (content: string) => void | Promise<void>;
+  /**
+   * Called when the user schedules a message via the chevron menu.
+   * Receives the HTML content and the chosen send time.
+   * If not provided, the "Schedule for later" option is hidden.
+   */
+  onSchedule?: (content: string, sendAt: Date) => void | Promise<void>;
   /** Placeholder text for the input */
   placeholder?: string;
   /** Whether sending is currently in progress */
@@ -55,6 +62,8 @@ interface MessageComposerProps {
    * Defaults to false.
    */
   hideVideoButton?: boolean;
+  /** Optional className for the outer wrapper (e.g. to override background) */
+  wrapperClassName?: string;
 }
 
 /**
@@ -64,12 +73,14 @@ interface MessageComposerProps {
  */
 export function MessageComposer({
   onSend,
+  onSchedule,
   placeholder = "Write a message,  @ to mention, / for shortcuts",
   disabled = false,
   autoFocus = false,
   defaultShowToolbar = true,
   showAgentCommands = false,
   hideVideoButton = false,
+  wrapperClassName,
 }: MessageComposerProps) {
   const router = useRouter();
   const { findOrCreateDM } = useDM();
@@ -259,6 +270,21 @@ export function MessageComposer({
     setHasContent(false);
   };
 
+  /**
+   * Schedule the current editor content to be sent at a future time.
+   * Grabs the HTML, calls the onSchedule prop, and clears the editor.
+   */
+  const handleSchedule = (sendAt: Date) => {
+    if (!editor || disabled || !onSchedule) return;
+    const text = editor.getText().trim();
+    if (!text) return;
+
+    const html = editor.getHTML();
+    onSchedule(html, sendAt);
+    editor.commands.clearContent();
+    setHasContent(false);
+  };
+
   // Keep ref in sync so handleKeyDown can call the latest handleSend
   handleSendRef.current = handleSend;
 
@@ -321,7 +347,7 @@ export function MessageComposer({
   );
 
   return (
-    <div className="bg-white px-5 pb-6">
+    <div className={wrapperClassName ?? "bg-white px-5 pb-6"}>
       <div className="flex flex-col rounded-lg border border-[var(--color-slack-border)] bg-white transition-[border-color,box-shadow] duration-200 focus-within:border-[rgba(29,28,29,0.3)] focus-within:shadow-[0px_1px_3px_0px_rgba(0,0,0,0.08)]">
         {/* Formatting toolbar — toggled by the formatting button */}
         {showToolbar && editor && <FormattingToolbar editor={editor} />}
@@ -373,6 +399,7 @@ export function MessageComposer({
               hasContent={hasContent}
               disabled={disabled}
               onSend={handleSend}
+              onSchedule={onSchedule ? handleSchedule : undefined}
             />
           </div>
         </div>
@@ -820,65 +847,104 @@ const ToolButton = forwardRef<
 /**
  * The split send button — green when active, gray when disabled.
  * Has a send icon and a chevron-down for the menu.
+ * The chevron opens a popover with a "Schedule for later" option.
  */
 function SendButton({
   hasContent,
   disabled,
   onSend,
+  onSchedule,
 }: {
   hasContent: boolean;
   disabled: boolean;
   onSend: () => void;
+  onSchedule?: (sendAt: Date) => void;
 }) {
   const isActive = hasContent && !disabled;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   return (
-    <div className="relative flex h-7 w-[55px]">
-      {/* Send button */}
-      <button
-        className={`flex items-center justify-center rounded-l-[4px] px-2 py-0.5 ${
-          isActive ? "bg-[var(--color-slack-send-active)]" : ""
-        }`}
-        onClick={onSend}
-        disabled={!isActive}
-      >
-        <Image
-          src="/icons/send-fill.svg"
-          alt="Send"
-          width={16}
-          height={16}
-          className={isActive ? "brightness-0 invert" : "opacity-40"}
-        />
-      </button>
+    <>
+      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <div className="relative flex h-7 w-[55px]">
+          {/* Send button */}
+          <button
+            className={`flex items-center justify-center rounded-l-[4px] px-2 py-0.5 ${
+              isActive ? "bg-[var(--color-slack-send-active)]" : ""
+            }`}
+            onClick={onSend}
+            disabled={!isActive}
+          >
+            <Image
+              src="/icons/send-fill.svg"
+              alt="Send"
+              width={16}
+              height={16}
+              className={isActive ? "brightness-0 invert" : "opacity-40"}
+            />
+          </button>
 
-      {/* Divider */}
-      <div
-        className={`flex h-7 items-center ${
-          isActive ? "bg-[var(--color-slack-send-active)]" : ""
-        }`}
-      >
-        <div
-          className={`h-5 w-px ${
-            isActive ? "bg-white/50" : "bg-[rgba(29,28,29,0.06)]"
-          }`}
-        />
-      </div>
+          {/* Divider */}
+          <div
+            className={`flex h-7 items-center ${
+              isActive ? "bg-[var(--color-slack-send-active)]" : ""
+            }`}
+          >
+            <div
+              className={`h-5 w-px ${
+                isActive ? "bg-white/50" : "bg-[rgba(29,28,29,0.06)]"
+              }`}
+            />
+          </div>
 
-      {/* More options chevron */}
-      <button
-        className={`flex items-center justify-center rounded-r-[4px] px-1 py-0.5 ${
-          isActive ? "bg-[var(--color-slack-send-active)]" : ""
-        }`}
-        disabled={!isActive}
-      >
-        <Image
-          src="/icons/chevron-down.svg"
-          alt="More"
-          width={15}
-          height={15}
-          className={isActive ? "brightness-0 invert" : "opacity-40"}
+          {/* More options chevron */}
+          <PopoverTrigger asChild>
+            <button
+              className={`flex items-center justify-center rounded-r-[4px] px-1 py-0.5 ${
+                isActive ? "bg-[var(--color-slack-send-active)]" : ""
+              }`}
+              disabled={!isActive}
+            >
+              <Image
+                src="/icons/chevron-down.svg"
+                alt="More"
+                width={15}
+                height={15}
+                className={isActive ? "brightness-0 invert" : "opacity-40"}
+              />
+            </button>
+          </PopoverTrigger>
+        </div>
+
+        <PopoverContent
+          side="top"
+          align="end"
+          sideOffset={4}
+          className="w-[220px] p-1 shadow-lg"
+        >
+          {onSchedule && (
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                setScheduleOpen(true);
+              }}
+              className="flex w-full items-center rounded-[4px] px-3 py-2 text-left text-[14px] text-[var(--color-slack-text)] hover:bg-[#f0f0f0] transition-colors"
+            >
+              Schedule for later
+            </button>
+          )}
+        </PopoverContent>
+      </Popover>
+
+      {/* Schedule dialog */}
+      {onSchedule && (
+        <ScheduleDialog
+          open={scheduleOpen}
+          onOpenChange={setScheduleOpen}
+          onSchedule={onSchedule}
         />
-      </button>
-    </div>
+      )}
+    </>
   );
 }

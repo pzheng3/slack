@@ -204,6 +204,7 @@ export function useSessionChat(sessionId: string) {
       // --- Auto-rename session on the first user message ---
       // The greeting from the agent doesn't count — check for any user messages.
       const hasUserMessages = messages.some((m) => m.sender_id !== agent.id);
+      const isIncognito = conversation.name?.includes("(incognito)") ?? false;
       if (!hasUserMessages) {
         // Fire-and-forget: summarize the prompt into a short title via OpenAI
         fetch("/api/summarize-title", {
@@ -213,7 +214,12 @@ export function useSessionChat(sessionId: string) {
         })
           .then((res) => res.json())
           .then(async (data: { title?: string }) => {
-            const newName = data.title || content.slice(0, 60);
+            let newName = data.title || content.slice(0, 60);
+
+            // Preserve the (incognito) suffix for incognito sessions
+            if (isIncognito && !newName.includes("(incognito)")) {
+              newName = `${newName} (incognito)`;
+            }
 
             await supabase
               .from("conversations")

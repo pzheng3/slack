@@ -69,7 +69,7 @@ export function AgentList({ onNavigate, sessions = [], onDeleteSession }: AgentL
             >
               <div className="relative h-5 w-5 shrink-0 overflow-hidden rounded-[3px]">
                 <Image
-                  src="/images/Slackbot.png"
+                  src={session.name.includes("(incognito)") ? "/images/Slackbot dark.png" : "/images/Slackbot.png"}
                   alt={session.name}
                   width={20}
                   height={20}

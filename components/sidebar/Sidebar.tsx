@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { AgentList } from "./AgentList";
 import { ChannelList } from "./ChannelList";
@@ -19,6 +21,7 @@ import { DirectMessageList } from "./DirectMessageList";
 import { AppsPlaceholder } from "./AppsPlaceholder";
 import { useAgentSessions } from "@/lib/hooks/useAgentSessions";
 import { useChannels } from "@/lib/hooks/useChannels";
+import { useScheduledMessages } from "@/lib/hooks/useScheduledMessages";
 
 interface SidebarProps {
   /** Whether the mobile sidebar is open */
@@ -54,6 +57,8 @@ export function Sidebar({
   const isResizing = useRef(false);
   const { sessions, createSession, deleteSession } = useAgentSessions();
   const { channels, createChannel, deleteChannel } = useChannels();
+  const { messages: scheduledMessages } = useScheduledMessages();
+  const pathname = usePathname();
 
   // --- Add Channel dialog state ---
   const [addChannelOpen, setAddChannelOpen] = useState(false);
@@ -171,6 +176,13 @@ export function Sidebar({
       >
         {/* Workspace header */}
         <WorkspaceHeader onNewMessage={onOpenNewMessage} />
+
+        {/* Scheduled nav link */}
+        <ScheduledNavLink
+          count={scheduledMessages.length}
+          active={pathname === "/chat/scheduled"}
+          onNavigate={onClose}
+        />
 
         {/* Scrollable sections */}
         <ScrollArea className="flex-1 overflow-hidden">
@@ -424,5 +436,54 @@ function AddButton({ label, onClick }: { label: string; onClick?: () => void }) 
         {addLabel}
       </span>
     </button>
+  );
+}
+
+/**
+ * Standalone "Scheduled" navigation link shown above the collapsible sections.
+ * Displays a clock icon, label, and a count badge when there are pending messages.
+ * @param count      - Number of pending scheduled messages
+ * @param active     - Whether the /chat/scheduled route is currently active
+ * @param onNavigate - Called on click (e.g. to close mobile sidebar)
+ */
+function ScheduledNavLink({
+  count,
+  active,
+  onNavigate,
+}: {
+  count: number;
+  active: boolean;
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="px-2 pt-3 pb-1">
+      <Link
+        href="/chat/scheduled"
+        onClick={onNavigate}
+        className={`
+          flex h-[28px] w-full min-w-0 items-center gap-2 rounded-[6px] px-3
+          ${active
+            ? "bg-[var(--color-slack-sidebar-selected)] text-[var(--color-slack-sidebar-selected-text)]"
+            : "text-[var(--color-slack-sidebar-text)] hover:bg-white/5"
+          }
+        `}
+      >
+        <Image
+          src="/icons/clock.svg"
+          alt=""
+          width={16}
+          height={16}
+          className={active ? "" : "brightness-0 invert opacity-70"}
+        />
+        <span className="min-w-0 flex-1 truncate text-[15px] leading-[17px]">
+          Scheduled
+        </span>
+        {count > 0 && (
+          <span className="shrink-0 text-[12px] leading-[16px] opacity-70">
+            {count}
+          </span>
+        )}
+      </Link>
+    </div>
   );
 }

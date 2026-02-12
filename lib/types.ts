@@ -40,6 +40,24 @@ export interface MessageWithSender extends Message {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Scheduled Messages                                                 */
+/* ------------------------------------------------------------------ */
+
+/** A message scheduled to be sent at a future time */
+export interface ScheduledMessage {
+  id: string;
+  conversation_id: string | null;
+  sender_id: string;
+  content: string;
+  send_at: string;
+  status: "pending" | "sent" | "cancelled";
+  recipient_type: string | null;
+  recipient_id: string | null;
+  recipient_label: string | null;
+  created_at: string;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Slash Commands & Agent Skills                                      */
 /* ------------------------------------------------------------------ */
 

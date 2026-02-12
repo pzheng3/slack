@@ -10,6 +10,10 @@ interface MessageListProps {
   loading?: boolean;
   /** When true, enables smart auto-scroll that follows the growing AI response */
   streaming?: boolean;
+  /** Override avatar URL for agent messages (e.g. dark Slackbot for incognito) */
+  agentAvatarOverride?: string;
+  /** Override display name for agent messages (e.g. "Slack Secret Agent" for incognito) */
+  agentNameOverride?: string;
 }
 
 /**
@@ -26,6 +30,8 @@ export function MessageList({
   messages,
   loading = false,
   streaming = false,
+  agentAvatarOverride,
+  agentNameOverride,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const promptRef = useRef<HTMLDivElement>(null);
@@ -247,13 +253,13 @@ export function MessageList({
           if (streaming && i === promptIdxRef.current) {
             return (
               <div key={msg.id} ref={promptRef}>
-                <MessageItem message={msg} compact={compact} />
+                <MessageItem message={msg} compact={compact} agentAvatarOverride={agentAvatarOverride} agentNameOverride={agentNameOverride} />
               </div>
             );
           }
 
           return (
-            <MessageItem key={msg.id} message={msg} compact={compact} isTyping={isTyping} />
+            <MessageItem key={msg.id} message={msg} compact={compact} isTyping={isTyping} agentAvatarOverride={agentAvatarOverride} agentNameOverride={agentNameOverride} />
           );
         })}
         <div ref={bottomRef} />

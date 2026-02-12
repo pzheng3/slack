@@ -7,6 +7,7 @@ import { useUnread } from "@/components/providers/UnreadProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import { useConversationById } from "@/lib/hooks/useConversation";
 import { useMessages } from "@/lib/hooks/useMessages";
+import { useScheduledMessages } from "@/lib/hooks/useScheduledMessages";
 import { consumePendingPrompt } from "@/lib/pending-prompt";
 import type { User } from "@/lib/types";
 import Image from "next/image";
@@ -37,6 +38,7 @@ export default function DMPageClient({
     loading: msgsLoading,
     sendMessage,
   } = useMessages(conversation?.id ?? null);
+  const { scheduleMessage } = useScheduledMessages();
 
   // Mark the DM as read on mount (conversationId is available immediately)
   useEffect(() => {
@@ -183,6 +185,11 @@ export default function DMPageClient({
       {/* Composer */}
       <MessageComposer
         onSend={sendMessage}
+        onSchedule={(content, sendAt) => {
+          if (!conversation) return;
+          const label = otherUser ? (isSelfDM ? `${otherUser.username} (you)` : otherUser.username) : "Direct Message";
+          scheduleMessage(content, sendAt, conversation.id, "people", conversation.id, label);
+        }}
         disabled={!conversation}
         autoFocus
       />

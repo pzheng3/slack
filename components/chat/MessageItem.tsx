@@ -375,6 +375,10 @@ interface MessageItemProps {
   compact?: boolean;
   /** If true, shows a 3-dot typing animation instead of the message body */
   isTyping?: boolean;
+  /** Override avatar URL for agent messages (e.g. dark Slackbot for incognito) */
+  agentAvatarOverride?: string;
+  /** Override display name for agent messages (e.g. "Slack Secret Agent" for incognito) */
+  agentNameOverride?: string;
 }
 
 /**
@@ -561,7 +565,7 @@ function MessageBody({ content }: { content: string }) {
  * Avatar (36px rounded), bold sender name (Lato Black 15px), timestamp (12px #616061), and message text.
  * Supports Tiptap HTML, Markdown, and plain-text content.
  */
-export function MessageItem({ message, compact = false, isTyping = false }: MessageItemProps) {
+export function MessageItem({ message, compact = false, isTyping = false, agentAvatarOverride, agentNameOverride }: MessageItemProps) {
   const time = new Date(message.created_at).toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
@@ -590,7 +594,7 @@ export function MessageItem({ message, compact = false, isTyping = false }: Mess
         <div className="relative h-9 w-9 overflow-hidden rounded-[5.5px]">
           {message.sender.avatar_url ? (
             <Image
-              src={message.sender.avatar_url}
+              src={agentAvatarOverride && message.sender.is_agent ? agentAvatarOverride : message.sender.avatar_url}
               alt={message.sender.username}
               width={36}
               height={36}
@@ -610,7 +614,7 @@ export function MessageItem({ message, compact = false, isTyping = false }: Mess
         <div className="flex items-center gap-[18px]">
           <div className="flex items-center gap-1">
             <button className="text-[15px] font-black leading-[1.467] text-[var(--color-slack-text)] hover:underline">
-              {message.sender.username}
+              {agentNameOverride && message.sender.is_agent ? agentNameOverride : message.sender.username}
             </button>
           </div>
           <span className="text-[12px] leading-[1.467] text-[var(--color-slack-text-secondary)]">
