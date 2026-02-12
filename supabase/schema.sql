@@ -33,6 +33,7 @@ create table if not exists public.conversations (
 create table if not exists public.conversation_members (
   conversation_id uuid not null references public.conversations(id) on delete cascade,
   user_id         uuid not null references public.users(id) on delete cascade,
+  last_read_at    timestamptz,
   primary key (conversation_id, user_id)
 );
 

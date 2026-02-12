@@ -5,34 +5,6 @@ import { useUser } from "@/components/providers/UserProvider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-/** localStorage key for persisting last-read timestamps */
-const STORAGE_KEY = "slack_input_unread_timestamps";
-
-/**
- * Loads the last-read timestamps from localStorage.
- * @returns A record mapping conversationId to ISO timestamp
- */
-function loadTimestamps(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Persists the last-read timestamps to localStorage.
- * @param timestamps - The record mapping conversationId to ISO timestamp
- */
-function saveTimestamps(timestamps: Record<string, string>): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(timestamps));
-  } catch {
-    // Ignore quota errors
-  }
-}
-
 /**
  * Resolves the conversation ID being viewed from the current pathname.
  * Returns null if the path doesn't correspond to a known conversation route.
@@ -59,13 +31,13 @@ function getConversationIdFromPath(pathname: string): string | null {
 /**
  * Hook that tracks unread message counts across all conversations.
  *
- * - On mount: loads last-read timestamps from localStorage and queries
- *   Supabase for unread message counts per conversation.
+ * - On mount: loads last-read timestamps from the `conversation_members`
+ *   table in Supabase and queries for unread message counts per conversation.
  * - Subscribes to a global Supabase Realtime channel for INSERT events
  *   on the `messages` table. When a new message arrives for a conversation
  *   the user is NOT currently viewing, increments that conversation's count.
  * - Exposes `markAsRead(conversationId)` to reset the count and persist
- *   the timestamp.
+ *   the timestamp to the database.
  *
  * @returns unreadCounts map and markAsRead function
  */
@@ -75,7 +47,9 @@ export function useUnreadCounts() {
   const pathname = usePathname();
 
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
-  const timestampsRef = useRef<Record<string, string>>(loadTimestamps());
+
+  /** In-memory cache of last-read timestamps, loaded from the database on init */
+  const timestampsRef = useRef<Record<string, string>>({});
 
   /** Ref that always holds the latest pathname for the Realtime callback */
   const pathnameRef = useRef(pathname);
@@ -94,6 +68,10 @@ export function useUnreadCounts() {
    */
   const activeConvIdRef = useRef<string | null>(null);
 
+  /** Ref to the current user for use inside callbacks */
+  const userRef = useRef(user);
+  userRef.current = user;
+
   // Keep activeConvIdRef in sync with simple path-based resolution
   useEffect(() => {
     const id = getConversationIdFromPath(pathname);
@@ -111,10 +89,10 @@ export function useUnreadCounts() {
     let cancelled = false;
 
     async function fetchInitialCounts() {
-      // 1. Get all conversations the user belongs to
+      // 1. Get all conversations the user belongs to, with last-read timestamps
       const { data: memberships } = await supabase
         .from("conversation_members")
-        .select("conversation_id")
+        .select("conversation_id, last_read_at")
         .eq("user_id", user!.id);
 
       if (cancelled || !memberships || memberships.length === 0) return;
@@ -122,12 +100,18 @@ export function useUnreadCounts() {
       const convIds = memberships.map((m) => m.conversation_id);
       memberConvIdsRef.current = new Set(convIds);
 
-      const timestamps = timestampsRef.current;
+      // Populate in-memory timestamps from the database
+      const timestamps: Record<string, string> = {};
+      for (const m of memberships) {
+        if (m.last_read_at) {
+          timestamps[m.conversation_id] = m.last_read_at;
+        }
+      }
+      timestampsRef.current = timestamps;
+
       const counts: Record<string, number> = {};
 
       // 2. For each conversation, count messages newer than last-read
-      // Batch into parallel queries (Supabase doesn't support conditional
-      // count in a single query easily, so we query per conversation)
       const promises = convIds.map(async (convId) => {
         const lastRead = timestamps[convId];
 
@@ -194,9 +178,16 @@ export function useUnreadCounts() {
 
           // If the user is currently viewing this conversation, auto-read it
           if (activeConvIdRef.current === newMsg.conversation_id) {
-            // Update the last-read timestamp so it stays current
+            // Update in-memory timestamp
             timestampsRef.current[newMsg.conversation_id] = newMsg.created_at;
-            saveTimestamps(timestampsRef.current);
+
+            // Persist to Supabase (fire-and-forget)
+            supabase
+              .from("conversation_members")
+              .update({ last_read_at: newMsg.created_at })
+              .eq("conversation_id", newMsg.conversation_id)
+              .eq("user_id", user!.id)
+              .then();
             return;
           }
 
@@ -220,20 +211,28 @@ export function useUnreadCounts() {
   // -------------------------------------------------------------------
   /**
    * Mark a conversation as read. Resets the unread count to 0 and
-   * persists the current timestamp to localStorage.
+   * persists the current timestamp to the database.
    *
    * @param conversationId - The conversation to mark as read
    */
   const markAsRead = useCallback(
     (conversationId: string) => {
-      if (!conversationId) return;
+      if (!conversationId || !userRef.current) return;
 
       // Update the active conversation ref
       activeConvIdRef.current = conversationId;
 
       // Persist the timestamp
-      timestampsRef.current[conversationId] = new Date().toISOString();
-      saveTimestamps(timestampsRef.current);
+      const now = new Date().toISOString();
+      timestampsRef.current[conversationId] = now;
+
+      // Persist to Supabase (fire-and-forget)
+      supabase
+        .from("conversation_members")
+        .update({ last_read_at: now })
+        .eq("conversation_id", conversationId)
+        .eq("user_id", userRef.current.id)
+        .then();
 
       // Reset count only if there was one
       setUnreadCounts((prev) => {
@@ -243,7 +242,7 @@ export function useUnreadCounts() {
         return next;
       });
     },
-    []
+    [supabase]
   );
 
   return { unreadCounts, markAsRead };

@@ -11,7 +11,7 @@ interface UnreadContextValue {
   unreadCounts: Record<string, number>;
   /**
    * Mark a conversation as read. Resets the badge count to 0 and
-   * persists the last-read timestamp to localStorage.
+   * persists the last-read timestamp to the database.
    */
   markAsRead: (conversationId: string) => void;
 }
