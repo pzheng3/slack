@@ -1,6 +1,6 @@
 # Slack Input
 
-A feature-rich Slack clone with AI agents, built with Next.js, Supabase, TipTap, and OpenAI.
+A feature-rich Slack clone with AI agents
 
 ## Features
 
