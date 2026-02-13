@@ -221,28 +221,6 @@ const listAgentSessions: FunctionTool = {
   strict: true,
 };
 
-/** Create a new agent session */
-const createAgentSession: FunctionTool = {
-  type: "function",
-  name: "create_agent_session",
-  description:
-    "Create a new agent chat session. " +
-    "Use this when the user asks to start a new agent conversation or session.",
-  parameters: {
-    type: "object",
-    properties: {
-      session_name: {
-        type: "string",
-        description:
-          "A descriptive name for the new session (e.g. 'Project Planning').",
-      },
-    },
-    required: ["session_name"],
-    additionalProperties: false,
-  },
-  strict: true,
-};
-
 /** Delete an agent session */
 const deleteAgentSession: FunctionTool = {
   type: "function",
@@ -285,7 +263,6 @@ export const AGENT_FUNCTION_TOOLS: FunctionTool[] = [
   deleteChannel,
   listUsers,
   listAgentSessions,
-  createAgentSession,
   deleteAgentSession,
 ];
 
@@ -300,5 +277,4 @@ export type AgentToolName =
   | "delete_channel"
   | "list_users"
   | "list_agent_sessions"
-  | "create_agent_session"
   | "delete_agent_session";

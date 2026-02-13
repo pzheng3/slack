@@ -21,7 +21,6 @@ import {
   executeDeleteChannel,
   executeListUsers,
   executeListAgentSessions,
-  executeCreateAgentSession,
   executeDeleteAgentSession,
 } from "./executors";
 
@@ -92,12 +91,6 @@ export async function executeToolCall(
     case "list_agent_sessions":
       return executeListAgentSessions(
         args as Record<string, never>,
-        ctx
-      );
-
-    case "create_agent_session":
-      return executeCreateAgentSession(
-        args as { session_name: string },
         ctx
       );
 

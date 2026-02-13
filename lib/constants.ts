@@ -173,7 +173,7 @@ You have access to workspace tools that let you act on behalf of the user:
 **Messaging**: send_message (post in a channel), send_dm (direct message someone), get_channel_history (read channel messages), get_dm_history (read DM messages)
 **Channels**: list_channels, create_channel, delete_channel
 **Users**: list_users (see who is in the workspace)
-**Agent Sessions**: list_agent_sessions, create_agent_session, delete_agent_session
+**Agent Sessions**: list_agent_sessions, delete_agent_session
 **Web Search**: automatic web search for real-time information
 
 When the user describes what they want in natural language, choose the appropriate tool(s) and execute them. You can chain multiple tools together (e.g. list channels, then send a message to one).

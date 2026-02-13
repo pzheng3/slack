@@ -7,7 +7,6 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { GENERIC_AGENT } from "@/lib/constants";
 
 /** Execution context passed to every tool executor */
 export interface ToolContext {
@@ -690,85 +689,6 @@ export async function executeListAgentSessions(
           created_at: s.created_at,
         })
       ),
-    },
-  };
-}
-
-// ----------------------------------------------------------------
-// create_agent_session
-// ----------------------------------------------------------------
-
-/**
- * Create a new agent chat session.
- *
- * @param args - { session_name: string }
- * @param ctx  - Tool execution context
- */
-export async function executeCreateAgentSession(
-  args: { session_name: string },
-  ctx: ToolContext
-): Promise<ToolResult> {
-  const { supabase, userId } = ctx;
-
-  // Find or create the generic agent
-  let agentId: string | null = null;
-
-  const { data: agentUser } = await supabase
-    .from("users")
-    .select("id")
-    .eq("username", GENERIC_AGENT.username)
-    .eq("is_agent", true)
-    .single();
-
-  if (agentUser) {
-    agentId = agentUser.id;
-  } else {
-    // Create the generic agent if missing
-    const { data: newAgent, error: agentErr } = await supabase
-      .from("users")
-      .insert({
-        username: GENERIC_AGENT.username,
-        avatar_url: GENERIC_AGENT.avatar_url,
-        is_agent: true,
-      })
-      .select("id")
-      .single();
-
-    if (agentErr || !newAgent) {
-      return {
-        success: false,
-        error: `Failed to find or create AI agent: ${agentErr?.message}`,
-      };
-    }
-    agentId = newAgent.id;
-  }
-
-  // Create the conversation
-  const { data: newConv, error: convErr } = await supabase
-    .from("conversations")
-    .insert({ type: "agent", name: args.session_name })
-    .select("id, name")
-    .single();
-
-  if (convErr || !newConv) {
-    return {
-      success: false,
-      error: `Failed to create session: ${convErr?.message}`,
-    };
-  }
-
-  // Add members
-  await supabase.from("conversation_members").insert([
-    { conversation_id: newConv.id, user_id: userId },
-    { conversation_id: newConv.id, user_id: agentId },
-  ]);
-
-  return {
-    success: true,
-    data: {
-      session_id: newConv.id,
-      session_name: args.session_name,
-      message: `Agent session "${args.session_name}" created successfully.`,
     },
   };
 }

@@ -55,21 +55,6 @@ export function dispatchSidebarEvent(
       break;
     }
 
-    case "create_agent_session": {
-      if (data.session_id && data.session_name) {
-        window.dispatchEvent(
-          new CustomEvent("agent-session-created", {
-            detail: {
-              id: data.session_id,
-              name: data.session_name,
-              created_at: new Date().toISOString(),
-            },
-          })
-        );
-      }
-      break;
-    }
-
     case "delete_agent_session": {
       if (data.session_id) {
         window.dispatchEvent(
