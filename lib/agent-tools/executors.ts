@@ -536,6 +536,7 @@ export async function executeCreateChannel(
       channel_name: name,
       channel_id: newChannel.id,
       message: `Channel "#${name}" created successfully.`,
+      mention_format: `When referring to this channel, write it as: [#${name}](mention://channel/${newChannel.id})`,
     },
   };
 }

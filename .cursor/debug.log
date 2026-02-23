@@ -1,178 +1,64 @@
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1770769049758,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1770769070573,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":21,"disabled":false,"willSend":true},"timestamp":1770769418743,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":31,"disabled":false,"willSend":true},"timestamp":1770769478145,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":0,"disabled":false,"willSend":false},"timestamp":1770770470092,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1770770547997,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770770624421,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":8,"disabled":false,"willSend":true},"timestamp":1770770635785,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":23,"disabled":false,"willSend":true},"timestamp":1770770650015,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":48,"disabled":false,"willSend":true},"timestamp":1770770681213,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770771377317,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770771642852,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770771702466,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":26,"disabled":false,"willSend":true},"timestamp":1770772378632,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":34,"disabled":false,"willSend":true},"timestamp":1770772428889,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770772440732,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":7,"disabled":false,"willSend":true},"timestamp":1770772450361,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":36,"disabled":false,"willSend":true},"timestamp":1770772472581,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":9,"disabled":false,"willSend":true},"timestamp":1770772967175,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":9,"disabled":false,"willSend":true},"timestamp":1770772980948,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":28,"disabled":false,"willSend":true},"timestamp":1770773186047,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":4,"disabled":false,"willSend":true},"timestamp":1770773309270,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":41,"disabled":false,"willSend":true},"timestamp":1770773327546,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":30,"disabled":false,"willSend":true},"timestamp":1770773374627,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":47,"disabled":false,"willSend":true},"timestamp":1770773393036,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":32,"disabled":false,"willSend":true},"timestamp":1770773438217,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":32,"disabled":false,"willSend":true},"timestamp":1770773458241,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":70,"disabled":false,"willSend":true},"timestamp":1770773478212,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770773817864,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794275876,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794275877,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794276428,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794276840,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794276841,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1770794277313,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794280600,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794280601,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794281261,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794328994,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794328998,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794331015,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794333010,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794333011,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794333508,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":6,"disabled":false,"willSend":true},"timestamp":1770794338545,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794344002,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794344003,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770794344525,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794597812,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794597837,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770794597973,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1770794599437,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":20,"disabled":false,"willSend":true},"timestamp":1770795343213,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":5,"disabled":false,"willSend":true},"timestamp":1770795565868,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":6,"disabled":false,"willSend":true},"timestamp":1770795763083,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":34,"disabled":false,"willSend":true},"timestamp":1770799200065,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":27,"disabled":false,"willSend":true},"timestamp":1770799254131,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":27,"disabled":false,"willSend":true},"timestamp":1770799804101,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":15,"disabled":false,"willSend":true},"timestamp":1770800420960,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":15,"disabled":false,"willSend":true},"timestamp":1770800453888,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":62,"disabled":false,"willSend":true},"timestamp":1770800617600,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":77,"disabled":false,"willSend":true},"timestamp":1770800635871,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":40,"disabled":false,"willSend":true},"timestamp":1770800828474,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770801356263,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770801356264,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":53,"disabled":false,"willSend":true},"timestamp":1770801375590,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":39,"disabled":false,"willSend":true},"timestamp":1770801548775,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":8,"disabled":false,"willSend":true},"timestamp":1770801554309,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":8,"disabled":false,"willSend":true},"timestamp":1770801602325,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770801656675,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770801656676,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1770801657204,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770801660201,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770801660202,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770801660724,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770801661271,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770801661271,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1770801661696,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":14,"disabled":false,"willSend":true},"timestamp":1770801967723,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":0,"disabled":false,"willSend":false},"timestamp":1770802205023,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":8,"disabled":false,"willSend":true},"timestamp":1770802208194,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":8,"disabled":false,"willSend":true},"timestamp":1770802938417,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":8,"disabled":false,"willSend":true},"timestamp":1770803609468,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":39,"disabled":false,"willSend":true},"timestamp":1770803660474,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":43,"disabled":false,"willSend":true},"timestamp":1770803894027,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":7,"disabled":false,"willSend":true},"timestamp":1770804038624,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":58,"disabled":false,"willSend":true},"timestamp":1770804384739,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770804396112,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":6,"disabled":false,"willSend":true},"timestamp":1770804415762,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":15,"disabled":false,"willSend":true},"timestamp":1770804425180,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770804918071,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":24,"disabled":false,"willSend":true},"timestamp":1770804936656,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":27,"disabled":false,"willSend":true},"timestamp":1770804945927,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":2,"disabled":false,"willSend":true},"timestamp":1770804950526,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":59,"disabled":false,"willSend":true},"timestamp":1770805277858,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":27,"disabled":false,"willSend":true},"timestamp":1770805295806,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":36,"disabled":false,"willSend":true},"timestamp":1770805320547,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1770805324053,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":15,"disabled":false,"willSend":true},"timestamp":1770805364331,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770805377322,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":68,"disabled":false,"willSend":true},"timestamp":1770805405807,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":36,"disabled":false,"willSend":true},"timestamp":1770805434612,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":17,"disabled":false,"willSend":true},"timestamp":1770805453419,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770805478525,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":11,"disabled":false,"willSend":true},"timestamp":1770805498436,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770805509105,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1770805539811,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1770805544386,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":9,"disabled":false,"willSend":true},"timestamp":1770805558179,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1770805563895,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":31,"disabled":false,"willSend":true},"timestamp":1770805581185,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":38,"disabled":false,"willSend":true},"timestamp":1770805951160,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":32,"disabled":false,"willSend":true},"timestamp":1770805965896,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":2,"disabled":false,"willSend":true},"timestamp":1770805974245,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":40,"disabled":false,"willSend":true},"timestamp":1770806126522,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":33,"disabled":false,"willSend":true},"timestamp":1770806202025,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":46,"disabled":false,"willSend":true},"timestamp":1770806400724,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":17,"disabled":false,"willSend":true},"timestamp":1770806444975,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":14,"disabled":false,"willSend":true},"timestamp":1770806579586,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":26,"disabled":false,"willSend":true},"timestamp":1770806737150,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":12,"disabled":false,"willSend":true},"timestamp":1770806843767,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":15,"disabled":false,"willSend":true},"timestamp":1770806865820,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770806934400,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":2,"disabled":false,"willSend":true},"timestamp":1770806943508,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770806969394,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770806969395,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":22,"disabled":false,"willSend":true},"timestamp":1770807051097,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":2,"disabled":false,"willSend":true},"timestamp":1770807056664,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":27,"disabled":false,"willSend":true},"timestamp":1770807078690,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770807125560,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":16,"disabled":false,"willSend":true},"timestamp":1770807267638,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1770807277663,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":10,"disabled":false,"willSend":true},"timestamp":1770807423156,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":24,"disabled":false,"willSend":true},"timestamp":1770807452057,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1770807461263,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770807469982,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770807520030,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770807520031,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1770807520646,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":8,"disabled":false,"willSend":true},"timestamp":1770807542625,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1770807547789,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770807580673,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":47,"disabled":false,"willSend":true},"timestamp":1770807603367,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":9,"disabled":false,"willSend":true},"timestamp":1770807626786,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":7,"disabled":false,"willSend":true},"timestamp":1770807632402,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":16,"disabled":false,"willSend":true},"timestamp":1770807850497,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":21,"disabled":false,"willSend":true},"timestamp":1770807863862,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":15,"disabled":false,"willSend":true},"timestamp":1770807894677,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":23,"disabled":false,"willSend":true},"timestamp":1770807967161,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1770808071109,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":27,"disabled":false,"willSend":true},"timestamp":1770808119959,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":17,"disabled":false,"willSend":true},"timestamp":1770808131148,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1770808140414,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":26,"disabled":false,"willSend":true},"timestamp":1770808151393,"hypothesisId":"H5"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770808201511,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770808201512,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770808202224,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1770808202225,"hypothesisId":"H3"}
-{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1770808202665,"hypothesisId":"H3"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":16,"disabled":false,"willSend":true},"timestamp":1770808623339,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770808644935,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":22,"disabled":false,"willSend":true},"timestamp":1770808763544,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":17,"disabled":false,"willSend":true},"timestamp":1770808778209,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":37,"disabled":false,"willSend":true},"timestamp":1770808811718,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":42,"disabled":false,"willSend":true},"timestamp":1770808844314,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":21,"disabled":false,"willSend":true},"timestamp":1770808855092,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":44,"disabled":false,"willSend":true},"timestamp":1770808880967,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":22,"disabled":false,"willSend":true},"timestamp":1770808938104,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":30,"disabled":false,"willSend":true},"timestamp":1770808950129,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770808995548,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1770809035722,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":21,"disabled":false,"willSend":true},"timestamp":1770809076434,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":30,"disabled":false,"willSend":true},"timestamp":1770809207222,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":25,"disabled":false,"willSend":true},"timestamp":1770809219358,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":11,"disabled":false,"willSend":true},"timestamp":1770809227741,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":32,"disabled":false,"willSend":true},"timestamp":1770809349489,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":55,"disabled":false,"willSend":true},"timestamp":1770809449810,"hypothesisId":"H5"}
-{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":14,"disabled":false,"willSend":true},"timestamp":1770833214399,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":37,"disabled":false,"willSend":true},"timestamp":1770973844658,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":25,"disabled":false,"willSend":true},"timestamp":1770973868169,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":42,"disabled":false,"willSend":true},"timestamp":1770973897914,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":28,"disabled":false,"willSend":true},"timestamp":1770974014153,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":29,"disabled":false,"willSend":true},"timestamp":1770974042321,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":31,"disabled":false,"willSend":true},"timestamp":1770981374409,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":51,"disabled":false,"willSend":true},"timestamp":1770981408012,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":9,"disabled":false,"willSend":true},"timestamp":1770981872660,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1770981876497,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":21,"disabled":false,"willSend":true},"timestamp":1770981891353,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":29,"disabled":false,"willSend":true},"timestamp":1770981900369,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":22,"disabled":false,"willSend":true},"timestamp":1770981925853,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":16,"disabled":false,"willSend":true},"timestamp":1770981937775,"hypothesisId":"H5"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771799877301,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771799877303,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1771799877858,"hypothesisId":"H3"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":40,"disabled":false,"willSend":true},"timestamp":1771800546614,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":20,"disabled":false,"willSend":true},"timestamp":1771800785281,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":16,"disabled":false,"willSend":true},"timestamp":1771800794121,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1771800819810,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":17,"disabled":false,"willSend":true},"timestamp":1771800832364,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":55,"disabled":false,"willSend":true},"timestamp":1771800979257,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":13,"disabled":false,"willSend":true},"timestamp":1771800993774,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":11,"disabled":false,"willSend":true},"timestamp":1771801009296,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":42,"disabled":false,"willSend":true},"timestamp":1771801142875,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":25,"disabled":false,"willSend":true},"timestamp":1771801540189,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":21,"disabled":false,"willSend":true},"timestamp":1771801669804,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":16,"disabled":false,"willSend":true},"timestamp":1771801690379,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":25,"disabled":false,"willSend":true},"timestamp":1771801702196,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":31,"disabled":false,"willSend":true},"timestamp":1771801727463,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1771801763630,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":22,"disabled":false,"willSend":true},"timestamp":1771801789552,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":27,"disabled":false,"willSend":true},"timestamp":1771801797132,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":35,"disabled":false,"willSend":true},"timestamp":1771801813762,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":27,"disabled":false,"willSend":true},"timestamp":1771801824595,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":21,"disabled":false,"willSend":true},"timestamp":1771801842231,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":19,"disabled":false,"willSend":true},"timestamp":1771801851282,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":37,"disabled":false,"willSend":true},"timestamp":1771801863188,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":34,"disabled":false,"willSend":true},"timestamp":1771801900022,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":47,"disabled":false,"willSend":true},"timestamp":1771802047996,"hypothesisId":"H5"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802063347,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802063348,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1771802063988,"hypothesisId":"H3"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":18,"disabled":false,"willSend":true},"timestamp":1771802094587,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":3,"disabled":false,"willSend":true},"timestamp":1771802105775,"hypothesisId":"H5"}
+{"location":"MessageComposer.tsx:handleSend","message":"handleSend called","data":{"textLength":38,"disabled":false,"willSend":true},"timestamp":1771802187880,"hypothesisId":"H5"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802420697,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802420698,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1771802421445,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802426352,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802426353,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1771802427189,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802427553,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802427554,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1771802428183,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802473808,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Elon Musk","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802473808,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Elon Musk","convId":"67ac2881-f521-4eca-8c81-46d8a6060906","aborted":false,"hasAgent":true},"timestamp":1771802474439,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802552834,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802552835,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1771802553406,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802707635,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-start","message":"init started","data":{"agentUsername":"Steve Jobs","userId":"a5df4287-52ca-4c0c-b20b-f48e56e1e185"},"timestamp":1771802707636,"hypothesisId":"H3"}
+{"location":"useAgentChat.ts:init-end","message":"init completed","data":{"agentUsername":"Steve Jobs","convId":"9a1d45a1-6c53-40a8-b48d-f57d21919876","aborted":false,"hasAgent":true},"timestamp":1771802708175,"hypothesisId":"H3"}

@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Image from "next/image";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface ScheduleDialogProps {
   /** Whether the dialog is open */
@@ -189,6 +189,25 @@ export function ScheduleDialog({
     }
   }, [customDateTime, isCustomValid, onSchedule, onOpenChange]);
 
+  /** Keep a ref so the keydown handler always sees the latest callback. */
+  const confirmRef = useRef(handleCustomConfirm);
+  confirmRef.current = handleCustomConfirm;
+
+  /** Enter key submits the custom schedule when the picker is open and valid. */
+  useEffect(() => {
+    if (!open || !showCustom) return;
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        confirmRef.current();
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, showCustom]);
+
   const todayStr = toLocalDateStr(new Date());
 
   return (
@@ -196,7 +215,7 @@ export function ScheduleDialog({
       <DialogContent
         className={`sm:max-w-[400px] gap-0 p-0 overflow-hidden ${highZ ? "z-[200]" : ""}`}
         overlayClassName={highZ ? "z-[200]" : undefined}
-        showCloseButton={false}
+        showCloseButton={true}
       >
         <DialogHeader className="px-5 pt-5 pb-3">
           <DialogTitle className="text-[18px] font-bold text-[var(--color-slack-text)]">

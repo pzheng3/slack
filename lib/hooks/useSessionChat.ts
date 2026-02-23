@@ -364,14 +364,18 @@ export function useSessionChat(sessionId: string) {
         const toolCalls: { id: string; name: string; arguments: Record<string, unknown>; success?: boolean; result?: string }[] = [];
 
         /** Build the display content including tool call metadata.
-         *  Cleans streaming artifacts (incomplete links, citation markers)
-         *  so they don't flash as raw text before being parsed. */
+         *  When source annotations have started arriving we keep complete
+         *  citation markers so `inlineSourceChips` (in MessageBody) can
+         *  replace them with styled chips during streaming. Markers that
+         *  don't yet have a matching annotation are cleaned up by
+         *  MessageBody after chip replacement. */
         const buildDisplayContent = () => {
-          let display = cleanStreamingContent(fullContent);
+          const hasSources = sources.length > 0;
+          let display = cleanStreamingContent(fullContent, hasSources);
           if (toolCalls.length > 0) {
             display = `<!--TOOL_CALLS:${JSON.stringify(toolCalls)}-->\n\n${display}`;
           }
-          if (sources.length > 0) {
+          if (hasSources) {
             display += `\n\n<!--SOURCES:${JSON.stringify(sources)}-->`;
           }
           return display;
@@ -400,7 +404,18 @@ export function useSessionChat(sessionId: string) {
                     )
                   );
                 }
-                // Capture web-search source citations
+                // Individual source annotation (streamed during response)
+                if (parsed.source) {
+                  sources.push(parsed.source);
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === streamingMsg.id
+                        ? { ...m, content: buildDisplayContent() }
+                        : m
+                    )
+                  );
+                }
+                // Bulk source citations (sent at end as fallback)
                 if (parsed.sources) {
                   sources = parsed.sources;
                   setMessages((prev) =>

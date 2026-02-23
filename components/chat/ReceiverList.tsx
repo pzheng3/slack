@@ -15,6 +15,7 @@ import type {
   MentionItem,
 } from "@/lib/hooks/useMentionSuggestions";
 import type { Recipient } from "@/components/chat/ReceiverChip";
+import { usePointerStabilizer } from "@/lib/hooks/usePointerStabilizer";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -49,7 +50,7 @@ type TabKey = "recent" | SendableCategory;
  */
 const NEW_AGENT_ITEM: MentionItem = {
   id: "__new_agent__",
-  label: "Start a new agent",
+  label: "New agent",
   avatar_url: "/images/Slackbot.png",
   category: "agent",
   // Far-future timestamp so it sorts first
@@ -114,6 +115,7 @@ export const ReceiverList = forwardRef<ReceiverListHandle, ReceiverListProps>(
   function ReceiverList({ items, query, onSelect, onOpenChat, onClose }, ref) {
   const [activeTab, setActiveTab] = useState<TabKey>("recent");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const { onItemPointerMove, suppressUntilMove } = usePointerStabilizer(setSelectedIndex);
   const listRef = useRef<HTMLDivElement>(null);
 
   /** Whether the Cmd (Meta) key is currently held down. */
@@ -349,12 +351,14 @@ export const ReceiverList = forwardRef<ReceiverListHandle, ReceiverListProps>(
       onKeyDown: (e: React.KeyboardEvent): boolean => {
         if (e.key === "ArrowUp") {
           e.preventDefault();
+          suppressUntilMove();
           setSelectedIndex((prev) => Math.max(0, prev - 1));
           return true;
         }
 
         if (e.key === "ArrowDown") {
           e.preventDefault();
+          suppressUntilMove();
           setSelectedIndex((prev) =>
             Math.min(visibleItems.length - 1, prev + 1)
           );
@@ -363,12 +367,14 @@ export const ReceiverList = forwardRef<ReceiverListHandle, ReceiverListProps>(
 
         if (e.key === "ArrowLeft" && !query) {
           e.preventDefault();
+          suppressUntilMove();
           switchTab(-1);
           return true;
         }
 
         if (e.key === "ArrowRight" && !query) {
           e.preventDefault();
+          suppressUntilMove();
           switchTab(1);
           return true;
         }
@@ -446,7 +452,7 @@ export const ReceiverList = forwardRef<ReceiverListHandle, ReceiverListProps>(
                 index === selectedIndex ? "bg-[#ebebeb]" : ""
               }`}
               onClick={() => selectItem(index)}
-              onMouseEnter={() => setSelectedIndex(index)}
+              onPointerMove={(e) => onItemPointerMove(index, e)}
             >
               {/* Avatar / Icon */}
               <ReceiverAvatar item={item} />

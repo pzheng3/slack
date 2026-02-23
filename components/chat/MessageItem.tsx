@@ -259,18 +259,20 @@ function linkifyMissedEntities(
     (a, b) => b.label.length - a.label.length
   );
 
-  // Split content into mention-span segments and raw-text segments.
-  // Mention spans are preserved verbatim; only raw segments are scanned.
-  const MENTION_SPAN_RE =
-    /<span\s[^>]*class="mention"[^>]*>[\s\S]*?<\/span>/g;
+  // Split content into protected HTML segments and raw-text segments.
+  // Mention/channel-mention spans AND anchor tags (source chips, links)
+  // are preserved verbatim so entity names inside URLs, titles, or chip
+  // labels are never corrupted by the replacement pass.
+  const PROTECTED_HTML_RE =
+    /(?:<span\s[^>]*class="(?:mention|channel-mention)"[^>]*>[\s\S]*?<\/span>|<a\s[^>]*>[\s\S]*?<\/a>)/g;
 
   const spans: { start: number; end: number }[] = [];
   let m: RegExpExecArray | null;
-  while ((m = MENTION_SPAN_RE.exec(content)) !== null) {
+  while ((m = PROTECTED_HTML_RE.exec(content)) !== null) {
     spans.push({ start: m.index, end: m.index + m[0].length });
   }
 
-  // If no existing mentions, process the whole string
+  // If no protected HTML elements, process the whole string
   if (spans.length === 0) {
     return replaceEntitiesInSegment(content, sorted);
   }
@@ -293,8 +295,42 @@ function linkifyMissedEntities(
 }
 
 /**
+ * Words that commonly precede a noun used in its generic sense
+ * (e.g. "in general", "the team", "a random choice"). When an entity
+ * name appears right after one of these words it is almost certainly
+ * ordinary prose, not a reference to the entity.
+ */
+const GENERIC_CONTEXT_RE =
+  /\b(?:the|a|an|in|of|for|to|at|on|by|with|from|is|are|was|were|be|been|being|as|its|their|this|that|our|your|my|each|every|some|any|no|more|most|very|quite|rather|pretty|so|too)\s+$/i;
+
+/**
+ * Determine whether an entity name is distinctive enough to be
+ * auto-linked when it appears as plain text (no `@` / `#` prefix
+ * and not bolded). Multi-word names, names with special characters,
+ * mixed-case names, or long single words are considered distinctive.
+ * Short, all-lowercase single words (like "general", "random", "help")
+ * are too ambiguous to link without an explicit prefix.
+ *
+ * @param name - The entity's display label
+ * @returns True if the name is distinctive enough for unprefixed matching
+ */
+function isDistinctiveName(name: string): boolean {
+  if (name.includes(" ") || name.includes("-") || name.includes("_")) return true;
+  if (/\d/.test(name)) return true;
+  if (name !== name.toLowerCase()) return true;
+  if (name.length > 12) return true;
+  return false;
+}
+
+/**
  * Replace known entity names in a raw text/markdown segment with mention
- * span HTML. Matches both markdown bold (`**name**`) and plain name text.
+ * span HTML. Uses a three-tier matching strategy ordered by confidence:
+ *
+ * 1. **Bold** (`**name**`) - AI intentionally highlighted, always linked
+ * 2. **Prefixed** (`@name` / `#name`) - explicit entity reference, always linked
+ * 3. **Plain** (`name`) - only linked for "distinctive" names, and only when
+ *    the surrounding context does not indicate generic usage (e.g. not
+ *    preceded by "the", "in", "a", etc.)
  *
  * @param segment  - A content segment with no existing mention spans
  * @param entities - Sorted entities (longest label first)
@@ -304,8 +340,6 @@ function replaceEntitiesInSegment(
   segment: string,
   entities: MentionItem[]
 ): string {
-  // Build replacements in a non-overlapping way using a single scan approach:
-  // collect all match positions, resolve overlaps, then splice.
   const replacements: { start: number; end: number; html: string }[] = [];
 
   for (const entity of entities) {
@@ -317,7 +351,7 @@ function replaceEntitiesInSegment(
       `<span class="mention" data-type="mention" ` +
       `data-id="${entity.category}:${entity.id}">${escapeHtml(prefix + entity.label)}</span>`;
 
-    // Try bold variant first: **name**
+    // Tier 1: Bold variant **name** (high confidence)
     const boldRe = new RegExp(`\\*\\*${escaped}\\*\\*`, "g");
     let bm: RegExpExecArray | null;
     while ((bm = boldRe.exec(segment)) !== null) {
@@ -328,23 +362,43 @@ function replaceEntitiesInSegment(
       }
     }
 
-    // Plain name with boundary checks (not preceded by word char, @, #;
-    // not followed by word char). This avoids matching inside URLs or
-    // partial words.
+    // Tier 2: Explicitly prefixed @name or #name (high confidence)
+    const prefixChar = prefix === "#" ? "#" : "@";
+    const prefixedRe = new RegExp(
+      `(?<![\\w])${escapeRegExp(prefixChar)}${escaped}(?!\\w)`,
+      "g"
+    );
+    let xm: RegExpExecArray | null;
+    while ((xm = prefixedRe.exec(segment)) !== null) {
+      const start = xm.index;
+      const end = start + xm[0].length;
+      if (!overlaps(replacements, start, end)) {
+        replacements.push({ start, end, html: spanHtml });
+      }
+    }
+
+    // Tier 3: Plain name without prefix (lower confidence)
+    // Only match distinctive names and skip when preceded by generic
+    // context words that signal ordinary prose.
+    if (!isDistinctiveName(entity.label)) continue;
+
     const plainRe = new RegExp(`(?<![\\w@#/])${escaped}(?!\\w)`, "g");
     let pm: RegExpExecArray | null;
     while ((pm = plainRe.exec(segment)) !== null) {
       const start = pm.index;
       const end = start + pm[0].length;
-      if (!overlaps(replacements, start, end)) {
-        replacements.push({ start, end, html: spanHtml });
-      }
+      if (overlaps(replacements, start, end)) continue;
+
+      // Check surrounding context for signals of generic usage
+      const before = segment.slice(Math.max(0, start - 30), start);
+      if (GENERIC_CONTEXT_RE.test(before)) continue;
+
+      replacements.push({ start, end, html: spanHtml });
     }
   }
 
   if (replacements.length === 0) return segment;
 
-  // Sort by start position descending so splicing doesn't shift indices
   replacements.sort((a, b) => b.start - a.start);
   let result = segment;
   for (const r of replacements) {
@@ -439,7 +493,12 @@ function MessageBody({ content }: { content: string }) {
    */
   const processedContent = useMemo(() => {
     const withChips = inlineSourceChips(contentWithoutToolCalls);
-    const withMentionLinks = convertMentionLinks(withChips);
+    // Strip any remaining citation markers that weren't replaced by chips
+    // (during streaming, not all annotations may have arrived yet).
+    const withCleanedMarkers = withChips
+      .replace(/【[^】]*】/g, "")
+      .replace(/【[^】]*$/, "");
+    const withMentionLinks = convertMentionLinks(withCleanedMarkers);
     // Tiptap HTML already has proper mentions — skip the fallback
     if (isHtmlContent(withMentionLinks)) return withMentionLinks;
     return linkifyMissedEntities(withMentionLinks, allEntities);

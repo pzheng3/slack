@@ -63,7 +63,9 @@ export interface EntityReference {
  * @returns Array of entity references found in the message
  */
 export function extractEntityReferences(html: string): EntityReference[] {
-  if (!html.includes('data-type="mention"')) return [];
+  const hasMention = html.includes('data-type="mention"');
+  const hasChannelMention = html.includes('data-type="channelMention"');
+  if (!hasMention && !hasChannelMention) return [];
   if (typeof window === "undefined") return [];
 
   const parser = new DOMParser();
@@ -71,11 +73,14 @@ export function extractEntityReferences(html: string): EntityReference[] {
 
   const refs: EntityReference[] = [];
   const seen = new Set<string>();
-  const mentionNodes = doc.querySelectorAll('span[data-type="mention"]');
+
+  // Query both @-trigger mentions and #-trigger channel mentions
+  const mentionNodes = doc.querySelectorAll(
+    'span[data-type="mention"], span[data-type="channelMention"]'
+  );
 
   mentionNodes.forEach((node) => {
     const dataId = node.getAttribute("data-id") || "";
-    // Strip the leading "@" (people/agent) or "#" (channel) prefix
     const label = (node.textContent || "").replace(/^[@#]/, "");
     const colonIdx = dataId.indexOf(":");
 
@@ -83,7 +88,6 @@ export function extractEntityReferences(html: string): EntityReference[] {
 
     const category = dataId.slice(0, colonIdx);
 
-    // Skip "app" mentions — they have no conversation history
     if (category === "app") return;
 
     if (!seen.has(dataId)) {
@@ -271,12 +275,13 @@ export function buildAIContent(
   html: string,
   entityContexts?: EntityContext[] | null
 ): string {
-  const hasMentions = html.includes('data-type="mention"');
+  const hasMentions =
+    html.includes('data-type="mention"') ||
+    html.includes('data-type="channelMention"');
   const hasSlashCommands = html.includes('data-type="slash-command"');
   const hasEntityContexts =
     entityContexts && entityContexts.length > 0;
 
-  // Quick bail-out — nothing to process
   if (!hasMentions && !hasSlashCommands && !hasEntityContexts) return html;
 
   // Guard against SSR (DOMParser is browser-only)
@@ -306,14 +311,17 @@ export function buildAIContent(
   }
 
   // Remove mention nodes that resolved to entity contexts
-  // (their conversation history is injected separately)
+  // (their conversation history is injected separately).
+  // Handles both @-trigger mentions and #-trigger channel mentions.
   if (hasEntityContexts) {
     const entityIds = new Set(
       entityContexts!.map((ec) => `${ec.category}:${ec.entityId}`)
     );
 
     doc
-      .querySelectorAll('span[data-type="mention"]')
+      .querySelectorAll(
+        'span[data-type="mention"], span[data-type="channelMention"]'
+      )
       .forEach((mention) => {
         const dataId = mention.getAttribute("data-id") || "";
         if (entityIds.has(dataId)) {

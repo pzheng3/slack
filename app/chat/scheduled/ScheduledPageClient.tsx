@@ -1,6 +1,8 @@
 "use client";
 
 import { useScheduledMessages } from "@/lib/hooks/useScheduledMessages";
+import { useSupabase } from "@/components/providers/SupabaseProvider";
+import { ScheduleDialog } from "@/components/chat/ScheduleDialog";
 import type { ScheduledMessage } from "@/lib/types";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -35,9 +37,10 @@ function formatSendTime(sendAt: string): string {
 }
 
 /**
- * Returns the appropriate icon path based on recipient type.
+ * Returns the fallback icon path based on recipient type.
+ * Used when no real avatar is available (e.g. channels, new agents).
  */
-function getRecipientIcon(recipientType: string | null, recipientLabel: string | null): string {
+function getFallbackIcon(recipientType: string | null, recipientLabel: string | null): string {
   switch (recipientType) {
     case "channel":
       return "/icons/hashtag-thick.svg";
@@ -52,10 +55,99 @@ function getRecipientIcon(recipientType: string | null, recipientLabel: string |
 }
 
 /**
- * Strips HTML tags from content to produce a plain-text preview.
+ * Fetches real avatar URLs for scheduled message recipients.
+ *
+ * For "people" recipients, queries the users table by recipient_id.
+ * For "agent" recipients, queries conversation_members to find the
+ * agent user in that conversation and returns their avatar.
+ *
+ * @returns A map of recipient_id -> avatar_url
  */
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").trim();
+function useRecipientAvatars(messages: ScheduledMessage[]) {
+  const supabase = useSupabase();
+  const [avatarMap, setAvatarMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    const peopleIds = new Set<string>();
+    const agentConvIds = new Set<string>();
+
+    for (const msg of messages) {
+      if (msg.recipient_type === "people" && msg.recipient_id) {
+        peopleIds.add(msg.recipient_id);
+      } else if (
+        (msg.recipient_type === "agent") &&
+        msg.recipient_id &&
+        msg.recipient_id !== "__new_agent__"
+      ) {
+        agentConvIds.add(msg.recipient_id);
+      }
+    }
+
+    if (peopleIds.size === 0 && agentConvIds.size === 0) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const map: Record<string, string> = {};
+
+      if (peopleIds.size > 0) {
+        const { data } = await supabase
+          .from("users")
+          .select("id, avatar_url")
+          .in("id", [...peopleIds]);
+
+        if (data) {
+          for (const u of data) {
+            if (u.avatar_url) map[u.id] = u.avatar_url;
+          }
+        }
+      }
+
+      if (agentConvIds.size > 0) {
+        const { data } = await supabase
+          .from("conversation_members")
+          .select("conversation_id, user:users!user_id (id, avatar_url, is_agent)")
+          .in("conversation_id", [...agentConvIds]);
+
+        if (data) {
+          for (const row of data) {
+            const user = row.user as unknown as {
+              id: string;
+              avatar_url: string | null;
+              is_agent: boolean;
+            };
+            if (user?.is_agent && user.avatar_url) {
+              map[row.conversation_id] = user.avatar_url;
+            }
+          }
+        }
+      }
+
+      if (!cancelled) setAvatarMap(map);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, messages]);
+
+  return avatarMap;
+}
+
+/**
+ * Sanitises Tiptap HTML for inline preview display.
+ *
+ * Keeps `<span>` tags (which carry mention / channel-mention classes and
+ * data attributes) and `<a>` tags (links) but strips all other tags so
+ * the preview renders as a single flowing line with styled chips.
+ */
+function inlineHtml(html: string): string {
+  return html
+    .replace(/<(?!\/?(?:span|a)\b)[^>]*>/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 /**
@@ -64,7 +156,20 @@ function stripHtml(html: string): string {
  * scheduled time, message preview, and "Send now" / "Cancel" actions.
  */
 export default function ScheduledPageClient() {
-  const { messages, loading, sendNow, cancelSchedule } = useScheduledMessages();
+  const { messages, loading, sendNow, cancelSchedule, reschedule } = useScheduledMessages();
+  const avatarMap = useRecipientAvatars(messages);
+
+  const [rescheduleTarget, setRescheduleTarget] = useState<string | null>(null);
+
+  /** Called when the user picks a new time from the ScheduleDialog. */
+  const handleReschedule = useCallback(
+    async (newSendAt: Date) => {
+      if (!rescheduleTarget) return;
+      await reschedule(rescheduleTarget, newSendAt);
+      setRescheduleTarget(null);
+    },
+    [reschedule, rescheduleTarget]
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -100,13 +205,24 @@ export default function ScheduledPageClient() {
               <ScheduledMessageCard
                 key={msg.id}
                 message={msg}
+                avatarUrl={msg.recipient_id ? avatarMap[msg.recipient_id] : undefined}
                 onSendNow={sendNow}
                 onCancel={cancelSchedule}
+                onChangeTime={setRescheduleTarget}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Reschedule dialog */}
+      <ScheduleDialog
+        open={rescheduleTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setRescheduleTarget(null);
+        }}
+        onSchedule={handleReschedule}
+      />
     </div>
   );
 }
@@ -117,19 +233,26 @@ export default function ScheduledPageClient() {
  */
 function ScheduledMessageCard({
   message,
+  avatarUrl,
   onSendNow,
   onCancel,
+  onChangeTime,
 }: {
   message: ScheduledMessage;
+  /** Real avatar URL resolved from the users table, if available */
+  avatarUrl?: string;
   onSendNow: (id: string) => Promise<void>;
   onCancel: (id: string) => Promise<void>;
+  /** Opens the reschedule dialog for this message */
+  onChangeTime: (id: string) => void;
 }) {
   const [actionLoading, setActionLoading] = useState<"send" | "cancel" | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
-  const textRef = useRef<HTMLParagraphElement>(null);
-  const iconSrc = getRecipientIcon(message.recipient_type, message.recipient_label);
-  const isImage = iconSrc.startsWith("/images/");
+  const textRef = useRef<HTMLDivElement>(null);
+  const fallbackIcon = getFallbackIcon(message.recipient_type, message.recipient_label);
+  const iconSrc = avatarUrl || fallbackIcon;
+  const isImage = avatarUrl ? true : fallbackIcon.startsWith("/images/");
 
   /** Detect whether the text content overflows (is truncated). */
   useEffect(() => {
@@ -194,14 +317,13 @@ function ScheduledMessageCard({
           </span>
         </div>
 
-        {/* Message preview */}
+        {/* Message preview -- renders inline HTML so @mention / #channel chips keep their styling */}
         <div className="flex min-w-0 items-baseline gap-1">
-          <p
+          <div
             ref={textRef}
-            className={`min-w-0 text-[15px] leading-[22px] text-[var(--color-slack-text)] opacity-70 ${expanded ? "whitespace-pre-wrap break-words" : "truncate"}`}
-          >
-            {stripHtml(message.content)}
-          </p>
+            className={`rich-text min-w-0 text-[15px] leading-[22px] text-[var(--color-slack-text)] opacity-70 ${expanded ? "whitespace-pre-wrap break-words" : "truncate"}`}
+            dangerouslySetInnerHTML={{ __html: inlineHtml(message.content) }}
+          />
           {expanded ? (
             <button
               type="button"
@@ -224,15 +346,23 @@ function ScheduledMessageCard({
         </div>
       </div>
 
-      {/* Action buttons — right side, visible on hover, no reserved space */}
+      {/* Action buttons -- right side, visible on hover, no reserved space */}
       <div className="hidden shrink-0 items-center gap-2 group-hover:flex">
         <button
           type="button"
           onClick={handleSendNow}
           disabled={actionLoading !== null}
-            className="rounded-[4px] bg-[var(--color-slack-send-active)] px-3 py-1 text-[13px] font-medium text-white hover:opacity-90 transition-colors disabled:opacity-50"
-          >
-            {actionLoading === "send" ? "Sending..." : "Send now"}
+          className="rounded-[4px] bg-[var(--color-slack-send-active)] px-3 py-1 text-[13px] font-medium text-white hover:opacity-90 transition-colors disabled:opacity-50"
+        >
+          {actionLoading === "send" ? "Sending..." : "Send now"}
+        </button>
+        <button
+          type="button"
+          onClick={() => onChangeTime(message.id)}
+          disabled={actionLoading !== null}
+          className="rounded-[4px] border border-[var(--color-slack-border)] bg-white px-3 py-1 text-[13px] font-medium text-[var(--color-slack-text)] hover:bg-[#f0f0f0] transition-colors disabled:opacity-50"
+        >
+          Reschedule
         </button>
         <button
           type="button"

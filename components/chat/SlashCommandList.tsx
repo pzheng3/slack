@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -14,6 +15,7 @@ import type {
   SlashCommandCategory,
   SlashCommandItem,
 } from "@/lib/types";
+import { usePointerStabilizer } from "@/lib/hooks/usePointerStabilizer";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -81,6 +83,7 @@ export const SlashCommandList = forwardRef<
 ) {
   const [activeTab, setActiveTab] = useState<TabKey>("recent");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const { onItemPointerMove, suppressUntilMove } = usePointerStabilizer(setSelectedIndex);
   const listRef = useRef<HTMLDivElement>(null);
   /** Refs to each row's subtitle element for truncation detection. */
   const subtitleRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -208,6 +211,19 @@ export const SlashCommandList = forwardRef<
     child?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
+  /**
+   * Check truncation AFTER refs are committed so we never read stale
+   * elements from a previous tab's items.
+   */
+  const [isSelectedTruncated, setIsSelectedTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = subtitleRefs.current.get(selectedIndex);
+    setIsSelectedTruncated(
+      el ? el.scrollWidth > el.clientWidth : false
+    );
+  }, [selectedIndex, visibleItems]);
+
   /* ---- actions ------------------------------------------------- */
 
   const selectItem = useCallback(
@@ -246,12 +262,14 @@ export const SlashCommandList = forwardRef<
       onKeyDown: ({ event }: { event: KeyboardEvent }) => {
         if (event.key === "ArrowUp") {
           event.preventDefault();
+          suppressUntilMove();
           setSelectedIndex((prev) => Math.max(0, prev - 1));
           return true;
         }
 
         if (event.key === "ArrowDown") {
           event.preventDefault();
+          suppressUntilMove();
           setSelectedIndex((prev) =>
             Math.min(visibleItems.length - 1, prev + 1)
           );
@@ -260,12 +278,14 @@ export const SlashCommandList = forwardRef<
 
         if (event.key === "ArrowLeft") {
           event.preventDefault();
+          suppressUntilMove();
           switchTab(-1);
           return true;
         }
 
         if (event.key === "ArrowRight") {
           event.preventDefault();
+          suppressUntilMove();
           switchTab(1);
           return true;
         }
@@ -307,14 +327,8 @@ export const SlashCommandList = forwardRef<
   /** The currently selected item (via keyboard or mouse). */
   const selectedItem = visibleItems[selectedIndex] ?? null;
 
-  /** Check if the selected row's subtitle is truncated. */
-  const selectedSubtitleEl = subtitleRefs.current.get(selectedIndex);
-  const isSelectedTruncated = selectedSubtitleEl
-    ? selectedSubtitleEl.scrollWidth > selectedSubtitleEl.clientWidth
-    : false;
-
   return (
-      <div className="relative w-[calc(100vw-2rem)] max-w-[575px] overflow-hidden rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
+      <div className="relative w-[calc(100vw-2rem)] max-w-[575px] rounded-lg bg-[#f8f8f8] shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
       {/* Tab bar */}
       <div className="flex overflow-x-auto border-b border-[rgba(29,28,29,0.13)] px-2 pt-2">
         {tabList.map((tab) => (
@@ -333,7 +347,7 @@ export const SlashCommandList = forwardRef<
       </div>
 
       {/* Item list — fixed height so switching tabs doesn't resize */}
-      <div ref={listRef} className="h-[320px] overflow-y-auto py-2 subtle-scrollbar">
+      <div ref={listRef} className="h-[320px] overflow-y-auto rounded-b-lg py-2 subtle-scrollbar">
         {visibleItems.length === 0 ? (
           <div className="flex h-full items-center justify-center text-[13px] text-[rgba(29,28,29,0.5)]">
             No results
@@ -345,7 +359,7 @@ export const SlashCommandList = forwardRef<
               item={item}
               selected={index === selectedIndex}
               onSelect={() => selectItem(index)}
-              onMouseEnter={() => setSelectedIndex(index)}
+              onPointerMove={(e) => onItemPointerMove(index, e)}
               subtitleRef={(el) => {
                 if (el) subtitleRefs.current.set(index, el);
                 else subtitleRefs.current.delete(index);
@@ -385,21 +399,20 @@ export const SlashCommandList = forwardRef<
  * @param item - The slash command item to render
  * @param selected - Whether this row is keyboard-selected / hovered
  * @param onSelect - Click handler
- * @param onMouseEnter - Mouse enter handler
- * @param onMouseLeave - Mouse leave handler
+ * @param onPointerMove - Pointer move handler (used instead of mouseenter to prevent phantom hover)
  */
 function SlashCommandRow({
   item,
   selected,
   onSelect,
-  onMouseEnter,
+  onPointerMove,
   subtitleRef,
   shortcutNumber,
 }: {
   item: SlashCommandItem;
   selected: boolean;
   onSelect: () => void;
-  onMouseEnter: () => void;
+  onPointerMove: (e: React.PointerEvent) => void;
   /** Callback ref to register the subtitle element for truncation detection. */
   subtitleRef: (el: HTMLDivElement | null) => void;
   /** When Cmd is held, the 1-9 shortcut number to show. */
@@ -417,7 +430,7 @@ function SlashCommandRow({
         selected ? "bg-[#ebebeb]" : ""
       }`}
       onClick={onSelect}
-      onMouseEnter={onMouseEnter}
+      onPointerMove={onPointerMove}
     >
       {/* Icon / Avatar */}
       <div className="flex shrink-0 items-center px-2">

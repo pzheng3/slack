@@ -125,19 +125,63 @@ export function useMessages(conversationId: string | null) {
 
   /**
    * Send a message to the current conversation.
+   *
+   * Uses an optimistic update so the message appears instantly in the UI
+   * (triggering auto-scroll) while the network request is in flight.
+   * Once the server responds, the temporary message is replaced with the
+   * real row. The realtime subscription deduplicates by ID.
    */
   const sendMessage = useCallback(
     async (content: string) => {
       if (!conversationId || !user) return;
 
-      const { error } = await supabase.from("messages").insert({
+      const tempId = `optimistic-${crypto.randomUUID()}`;
+      const optimistic: MessageWithSender = {
+        id: tempId,
         conversation_id: conversationId,
         sender_id: user.id,
         content,
+        created_at: new Date().toISOString(),
+        sender: {
+          id: user.id,
+          username: user.username,
+          avatar_url: user.avatar_url,
+          is_agent: false,
+        },
+      };
+
+      setMessages((prev) => {
+        const updated = [...prev, optimistic];
+        messagesCache.set(conversationId, updated);
+        return updated;
       });
+
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          content,
+        })
+        .select(
+          `*, sender:users!sender_id (id, username, avatar_url, is_agent)`
+        )
+        .single();
 
       if (error) {
         console.error("Failed to send message:", error.message);
+        setMessages((prev) => {
+          const updated = prev.filter((m) => m.id !== tempId);
+          messagesCache.set(conversationId, updated);
+          return updated;
+        });
+      } else if (data) {
+        const real = data as unknown as MessageWithSender;
+        setMessages((prev) => {
+          const updated = prev.map((m) => (m.id === tempId ? real : m));
+          messagesCache.set(conversationId, updated);
+          return updated;
+        });
       }
     },
     [supabase, conversationId, user]

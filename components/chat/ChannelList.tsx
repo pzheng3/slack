@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import type { MentionItem } from "@/lib/hooks/useMentionSuggestions";
+import { usePointerStabilizer } from "@/lib/hooks/usePointerStabilizer";
 
 /* ------------------------------------------------------------------ */
 /*  Public types                                                       */
@@ -45,6 +46,7 @@ export interface ChannelListHandle {
 export const ChannelList = forwardRef<ChannelListHandle, ChannelListProps>(
   function ChannelList({ items, query, command, onOpen }, ref) {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const { onItemPointerMove, suppressUntilMove } = usePointerStabilizer(setSelectedIndex);
     const [cmdHeld, setCmdHeld] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -108,12 +110,14 @@ export const ChannelList = forwardRef<ChannelListHandle, ChannelListProps>(
         onKeyDown: ({ event }: { event: KeyboardEvent }) => {
           if (event.key === "ArrowUp") {
             event.preventDefault();
+            suppressUntilMove();
             setSelectedIndex((prev) => Math.max(0, prev - 1));
             return true;
           }
 
           if (event.key === "ArrowDown") {
             event.preventDefault();
+            suppressUntilMove();
             setSelectedIndex((prev) =>
               Math.min(filtered.length - 1, prev + 1)
             );
@@ -178,7 +182,7 @@ export const ChannelList = forwardRef<ChannelListHandle, ChannelListProps>(
                   index === selectedIndex ? "bg-[#ebebeb]" : ""
                 }`}
                 onClick={() => selectItem(index)}
-                onMouseEnter={() => setSelectedIndex(index)}
+                onPointerMove={(e) => onItemPointerMove(index, e)}
               >
                 {/* # icon */}
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] bg-[rgba(29,28,29,0.1)]">

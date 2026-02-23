@@ -6,6 +6,7 @@ import { NewMessageDialog } from "@/components/chat/NewMessageDialog";
 import { EntityLinkProvider } from "@/components/providers/EntityLinkProvider";
 import { UnreadProvider } from "@/components/providers/UnreadProvider";
 import { SchedulePollerProvider } from "@/components/providers/SchedulePollerProvider";
+import { ScheduledMessagesProvider } from "@/components/providers/ScheduledMessagesProvider";
 import { useUser } from "@/components/providers/UserProvider";
 import { Menu } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -62,6 +63,7 @@ export default function ChatLayout({
 
   return (
     <UnreadProvider>
+      <ScheduledMessagesProvider>
       <SchedulePollerProvider>
       <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-slack-bg)]">
         {/* Full-width top bar */}
@@ -102,6 +104,7 @@ export default function ChatLayout({
         <NewMessageDialog open={newMessageOpen} onClose={handleCloseNewMessage} />
       </div>
       </SchedulePollerProvider>
+      </ScheduledMessagesProvider>
     </UnreadProvider>
   );
 }

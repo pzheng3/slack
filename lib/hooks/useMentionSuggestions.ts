@@ -300,14 +300,22 @@ export function useMentionSuggestions(): MentionItem[] {
   }, [supabase, user, fetchAll]);
 
   /**
-   * Listen for the custom "agent-session-renamed" DOM event that the
-   * sidebar dispatches when a session name changes — keeps labels in
-   * sync even before the Realtime UPDATE arrives.
+   * Listen for custom DOM events dispatched by agent tool calls so the
+   * mention list stays in sync without waiting for Supabase Realtime:
+   * - "agent-session-renamed" — session label changed
+   * - "channel-created" — new channel created by AI tool
+   * - "channel-deleted" — channel deleted by AI tool
    */
   useEffect(() => {
     const handler = () => fetchAll();
     window.addEventListener("agent-session-renamed", handler);
-    return () => window.removeEventListener("agent-session-renamed", handler);
+    window.addEventListener("channel-created", handler);
+    window.addEventListener("channel-deleted", handler);
+    return () => {
+      window.removeEventListener("agent-session-renamed", handler);
+      window.removeEventListener("channel-created", handler);
+      window.removeEventListener("channel-deleted", handler);
+    };
   }, [fetchAll]);
 
   return items;

@@ -498,7 +498,7 @@ function FormattingToolbar({ editor }: { editor: Editor }) {
 
   return (
     <div className="flex flex-col rounded-t-lg bg-[var(--color-slack-toolbar-bg)]">
-      <div className="flex items-center gap-1 p-1 py-px">
+      <div className="flex items-center gap-1 p-1 py-1">
         <FormatButton
           icon="bold"
           onClick={() => editor.chain().focus().toggleBold().run()}

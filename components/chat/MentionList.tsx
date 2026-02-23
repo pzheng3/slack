@@ -14,6 +14,7 @@ import type {
   MentionCategory,
   MentionItem,
 } from "@/lib/hooks/useMentionSuggestions";
+import { usePointerStabilizer } from "@/lib/hooks/usePointerStabilizer";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -95,6 +96,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
   function MentionList({ items, query, command, onOpen }, ref) {
     const [activeTab, setActiveTab] = useState<TabKey>("recent");
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const { onItemPointerMove, suppressUntilMove } = usePointerStabilizer(setSelectedIndex);
     const [cmdHeld, setCmdHeld] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -288,12 +290,14 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
         onKeyDown: ({ event }: { event: KeyboardEvent }) => {
           if (event.key === "ArrowUp") {
             event.preventDefault();
+            suppressUntilMove();
             setSelectedIndex((prev) => Math.max(0, prev - 1));
             return true;
           }
 
           if (event.key === "ArrowDown") {
             event.preventDefault();
+            suppressUntilMove();
             setSelectedIndex((prev) =>
               Math.min(visibleItems.length - 1, prev + 1)
             );
@@ -302,12 +306,14 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
 
           if (event.key === "ArrowLeft") {
             event.preventDefault();
+            suppressUntilMove();
             switchTab(-1);
             return true;
           }
 
           if (event.key === "ArrowRight") {
             event.preventDefault();
+            suppressUntilMove();
             switchTab(1);
             return true;
           }
@@ -387,7 +393,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(
                   index === selectedIndex ? "bg-[#ebebeb]" : ""
                 }`}
                 onClick={() => selectItem(index)}
-                onMouseEnter={() => setSelectedIndex(index)}
+                onPointerMove={(e) => onItemPointerMove(index, e)}
               >
                 {/* Avatar / Icon */}
                 <MentionAvatar item={item} />

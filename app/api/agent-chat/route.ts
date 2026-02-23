@@ -221,6 +221,28 @@ async function streamOpenAIResponse(
       sendSSE(controller, encoder, { text: event.delta });
     }
 
+    // Forward individual citation annotations as they arrive so the
+    // client can render source chips during streaming (not just at end).
+    if (event.type === "response.output_text.annotation.added") {
+      const a = event.annotation as {
+        type?: string;
+        url?: string;
+        title?: string;
+        start_index?: number;
+        end_index?: number;
+      };
+      if (a.type === "url_citation") {
+        sendSSE(controller, encoder, {
+          source: {
+            url: a.url,
+            title: a.title,
+            start_index: a.start_index,
+            end_index: a.end_index,
+          },
+        });
+      }
+    }
+
     // When the response completes, extract output items and annotations
     if (event.type === "response.completed") {
       outputItems = event.response.output;

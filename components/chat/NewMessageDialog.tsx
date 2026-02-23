@@ -283,7 +283,7 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
 
         case "agent": {
           if (recipient.id === "__new_agent__") {
-            // "Start a new agent" — create a fresh session (no greeting,
+            // "New agent" — create a fresh session (no greeting,
             // no auto-navigation). The prompt is stored in the pending-
             // prompt store so the session page can feed it through
             // sendMessage(), which inserts the message AND triggers the
@@ -358,15 +358,13 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
       try {
         if (recipient.type === "agent" && recipient.id === "__new_agent__") {
           // Schedule for a new agent session — will be created at send time
-          const sessionName =
-            text.length > 60 ? text.slice(0, 60) + "..." : text;
           await scheduleMessage(
             html,
             sendAt,
             null,
             "new_agent",
             recipient.id,
-            sessionName
+            "New agent"
           );
         } else {
           // For existing conversations, resolve conversation_id first
@@ -662,7 +660,11 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
                   type="text"
                   value={toQuery}
                   onChange={(e) => {
-                    setToQuery(e.target.value);
+                    const value = e.target.value;
+                    if (recipient) {
+                      setRecipient(null);
+                    }
+                    setToQuery(value);
                     if (!receiverOpen) setReceiverOpen(true);
                   }}
                   onFocus={() => {
@@ -672,7 +674,7 @@ export function NewMessageDialog({ open, onClose }: NewMessageDialogProps) {
                   onKeyDownCapture={handleToInputKeyDownCapture}
                   placeholder={recipient ? "" : "agent, people or channel"}
                   className={
-                    recipient
+                    recipient && !receiverOpen
                       ? "w-0 min-w-0 p-0 caret-transparent opacity-0 absolute"
                       : "min-w-[60px] flex-1 bg-transparent text-[15px] text-[#1d1c1d] placeholder:text-[rgba(29,28,29,0.5)] outline-none"
                   }
@@ -792,7 +794,7 @@ function DialogAttachButton() {
 
       {/* Attach menu */}
       {open && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-[calc(100vw-2rem)] max-w-[340px] overflow-hidden rounded-lg bg-white py-1 shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
+        <div className="absolute top-full left-0 z-50 mt-2 w-[calc(100vw-2rem)] max-w-[340px] overflow-hidden rounded-lg bg-white py-1 shadow-[0px_0px_0px_1px_rgba(29,28,29,0.13),0px_4px_12px_0px_rgba(0,0,0,0.1)]">
           {ATTACH_MENU_ITEMS.map((item) => (
             <button
               key={item.label}
