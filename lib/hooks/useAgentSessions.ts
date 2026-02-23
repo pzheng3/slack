@@ -134,6 +134,21 @@ export function useAgentSessions() {
   }, []);
 
   /**
+   * Listen for "agent-sessions-refresh" events dispatched as a fallback
+   * after agent tool mutations (e.g. delete_agent_session) to guarantee
+   * the sidebar reflects the latest DB state.
+   */
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchSessions();
+    };
+
+    window.addEventListener("agent-sessions-refresh", handleRefresh);
+    return () =>
+      window.removeEventListener("agent-sessions-refresh", handleRefresh);
+  }, [fetchSessions]);
+
+  /**
    * Listen for "agent-session-created" custom events dispatched by
    * createSession so that OTHER hook instances (e.g. the sidebar) pick
    * up newly created sessions immediately without a full refetch.

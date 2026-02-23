@@ -63,6 +63,9 @@ export function dispatchSidebarEvent(
           })
         );
       }
+      // Always trigger a full refresh as a fallback to guarantee the
+      // sidebar reflects the latest DB state after a mutation.
+      window.dispatchEvent(new CustomEvent("agent-sessions-refresh"));
       break;
     }
 

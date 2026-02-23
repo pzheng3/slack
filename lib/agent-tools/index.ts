@@ -96,7 +96,7 @@ export async function executeToolCall(
 
     case "delete_agent_session":
       return executeDeleteAgentSession(
-        args as { session_name: string },
+        args as { session_id: string },
         ctx
       );
 

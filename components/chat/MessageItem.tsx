@@ -195,7 +195,12 @@ function convertMentionLinks(content: string): string {
   return content.replace(
     MENTION_LINK_RE,
     (_match, display: string, category: string, entityId: string) => {
-      const safeDisplay = display
+      // Normalize the prefix: channels get #, everything else gets @.
+      // The AI sometimes uses the wrong prefix (e.g. @general instead of #general).
+      const correctPrefix = category === "channel" ? "#" : "@";
+      const nameOnly = display.replace(/^[@#]+/, "");
+      const normalized = correctPrefix + nameOnly;
+      const safeDisplay = normalized
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -378,9 +383,11 @@ function replaceEntitiesInSegment(
     }
 
     // Tier 3: Plain name without prefix (lower confidence)
-    // Only match distinctive names and skip when preceded by generic
-    // context words that signal ordinary prose.
-    if (!isDistinctiveName(entity.label)) continue;
+    // For non-channel entities, only match distinctive names.
+    // Channel entities always qualify because in a Slack workspace context
+    // they are very likely genuine references; the generic-context check
+    // below still prevents obvious false positives like "in general".
+    if (entity.category !== "channel" && !isDistinctiveName(entity.label)) continue;
 
     const plainRe = new RegExp(`(?<![\\w@#/])${escaped}(?!\\w)`, "g");
     let pm: RegExpExecArray | null;

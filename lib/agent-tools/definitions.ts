@@ -226,19 +226,19 @@ const deleteAgentSession: FunctionTool = {
   type: "function",
   name: "delete_agent_session",
   description:
-    "Delete an existing agent chat session. " +
-    "Use this when the user asks to remove or clean up an agent session. " +
+    "Delete an existing agent chat session by its UUID. " +
+    "You MUST call list_agent_sessions first to get the session_id, then pass it here. " +
     "This action is irreversible.",
   parameters: {
     type: "object",
     properties: {
-      session_name: {
+      session_id: {
         type: "string",
         description:
-          "The name of the agent session to delete. Use list_agent_sessions first if unsure.",
+          "The UUID of the agent session to delete. Get this from list_agent_sessions.",
       },
     },
-    required: ["session_name"],
+    required: ["session_id"],
     additionalProperties: false,
   },
   strict: true,

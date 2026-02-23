@@ -699,57 +699,64 @@ export async function executeListAgentSessions(
 // ----------------------------------------------------------------
 
 /**
- * Delete an agent session by name.
+ * Delete an agent session by its UUID.
+ * The model must call list_agent_sessions first to obtain the session_id.
  *
- * @param args - { session_name: string }
+ * @param args - { session_id: string }
  * @param ctx  - Tool execution context
  */
 export async function executeDeleteAgentSession(
-  args: { session_name: string },
+  args: { session_id: string },
   ctx: ToolContext
 ): Promise<ToolResult> {
   const { supabase, userId } = ctx;
 
-  // Get the user's agent sessions
-  const { data: memberships } = await supabase
+  if (!args.session_id) {
+    return {
+      success: false,
+      error:
+        "session_id is required. " +
+        "Call list_agent_sessions first to get session IDs.",
+    };
+  }
+
+  // Verify the user is a member of this conversation
+  const { data: membership } = await supabase
     .from("conversation_members")
     .select("conversation_id")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("conversation_id", args.session_id)
+    .maybeSingle();
 
-  if (!memberships || memberships.length === 0) {
+  if (!membership) {
     return {
       success: false,
-      error: `No agent session named "${args.session_name}" found.`,
+      error: `You are not a member of session "${args.session_id}", or it does not exist.`,
     };
   }
 
-  const convIds = memberships.map(
-    (m: { conversation_id: string }) => m.conversation_id
-  );
-
-  // Find the session by name (case-insensitive match)
-  const { data: sessions } = await supabase
+  // Verify it is an agent-type conversation
+  const { data: session } = await supabase
     .from("conversations")
     .select("id, name")
-    .in("id", convIds)
-    .eq("type", "agent");
+    .eq("id", args.session_id)
+    .eq("type", "agent")
+    .maybeSingle();
 
-  const target = (sessions ?? []).find(
-    (s: { id: string; name: string | null }) =>
-      s.name?.toLowerCase() === args.session_name.toLowerCase()
-  );
-
-  if (!target) {
+  if (!session) {
     return {
       success: false,
-      error: `No agent session named "${args.session_name}" found.`,
+      error: `Session "${args.session_id}" is not an agent session or does not exist.`,
     };
   }
 
-  const { error: delErr } = await supabase
+  // Delete and verify via .select()
+  const { data: deleted, error: delErr } = await supabase
     .from("conversations")
     .delete()
-    .eq("id", target.id);
+    .eq("id", session.id)
+    .select("id")
+    .maybeSingle();
 
   if (delErr) {
     return {
@@ -758,12 +765,21 @@ export async function executeDeleteAgentSession(
     };
   }
 
+  if (!deleted) {
+    return {
+      success: false,
+      error:
+        `Session "${session.name}" (${session.id}) was found but could not be deleted. ` +
+        "It may have already been removed or a database policy is blocking the operation.",
+    };
+  }
+
   return {
     success: true,
     data: {
-      session_id: target.id,
-      session_name: args.session_name,
-      message: `Agent session "${args.session_name}" has been deleted.`,
+      session_id: session.id,
+      session_name: session.name ?? "Untitled",
+      message: `Agent session "${session.name}" has been deleted.`,
     },
   };
 }
